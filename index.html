@@ -273,6 +273,7 @@
             left: 20px;
             color: white;
             z-index: 1000;
+            width: 350px;
         }
 
         /* Add these styles */
@@ -348,12 +349,14 @@
             border-radius: 4px;
             overflow: hidden;
             position: relative;
+            z-index: 2;
         }
 
         .gauge-fill {
             height: 100%;
             transition: width 0.3s ease;
             border-radius: 4px;
+            z-index: 2;
         }
 
         .gauge-value {
@@ -364,13 +367,15 @@
 
         /* Circular gauge styles */
         .total-gauges-container {
+            position: relative;
             display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
+            justify-content: flex-start;
+            margin: 30px 0;
             padding: 25px 20px 35px 20px; 
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
             min-height: 150px; 
+            width: fit-content;
         }
 
         .circular-gauge {
@@ -378,6 +383,8 @@
             width: 120px;
             height: 120px;
             text-align: center;
+            flex-shrink: 0; /* Prevent shrinking */
+            margin-bottom: 30px;
         }
 
         .gauge-circle {
@@ -423,6 +430,47 @@
             color: white;
         }
 
+        .collections-container {
+            display: grid;
+            /* grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); */
+            grid-template-columns: repeat(16, 120px); /* Show 10 items per row */
+            gap: 70px 20px;
+            padding: 0 15px;
+
+            /* display: flex;
+            flex-direction: row; 
+            justify-content: space-around; */
+            width: fit-content;
+        }
+
+        .collection-details {
+            position: absolute;
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .collection-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .status-icon {
+            color: var(--status-color, white);
+        }
+
+        .collection-item .status-icon[data-active="true"] {
+            --status-color: #00ff00;
+        }
+
+        .collection-item .status-icon[data-active="false"] {
+            --status-color: #ff0000;
+        }
+
     </style>
 </head>
 
@@ -435,7 +483,7 @@
 
             <div class="total-gauges-container">
                 <div class="circular-gauge" id="totalDomainGauge"></div>
-                <div class="circular-gauge" id="totalRarityGauge"></div>
+                <div class="collections-container" id="collectionsContainer"></div>
             </div>
 
             <div id="legend">
@@ -478,6 +526,8 @@
                     "math": "#BD10E0",
                     "machine-learning": "#FF5733"
                 };
+
+                this.activeCollections = new Set(); 
 
                 this.init();
             }
@@ -1069,7 +1119,7 @@
                 container.appendChild(gaugeBar);
             }
 
-            createCircularGauge(container, percentage, color, count, total, label) {
+            createCircularGauge(container, percentage, color, count, total, label, isCollection = false, collectionId = null) {
                 container.innerHTML = '';
                 
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -1127,10 +1177,24 @@
                 labelText.className = 'gauge-label';
                 labelText.textContent = label;
                 labelText.style.color = color;
+
+                if (isCollection) {
+                    container.style.cursor = 'pointer';
+                    container.onclick = () => this.toggleCollectionDetails(collectionId);
+                }
                 
                 container.appendChild(svg);
                 container.appendChild(textContainer);
                 container.appendChild(labelText);
+            }
+
+            toggleCollectionDetails(collectionId) {
+                if (this.activeCollections.has(collectionId)) {
+                    this.activeCollections.delete(collectionId);
+                } else {
+                    this.activeCollections.add(collectionId);
+                }
+                this.updateStats(); // Refresh display
             }
 
             updateStats() {
@@ -1212,15 +1276,6 @@
                     'Total Domains'
                 );
 
-                this.createCircularGauge(
-                    document.getElementById('totalRarityGauge'),
-                    totalRarityPercentage,
-                    '#FFD700', // Use appropriate color
-                    totalRarityCount,
-                    totalRarityTotal,
-                    'Total Rarities'
-                );
-
                 // Update domain gauge bars
                 const legend = document.getElementById('legend');
                 legend.innerHTML = '<div class="legend-title">Domains:</div>';
@@ -1290,16 +1345,60 @@
                     );
                 }
 
-                if (totalRarityTotal > 0) {
+                const collectionsContainer = document.getElementById('collectionsContainer');
+                collectionsContainer.innerHTML = '';
+
+                // Add collection gauges
+                Object.entries(this.data.collections || {}).forEach(([collectionId, collection]) => {
+                    const collectionGauge = document.createElement('div');
+                    collectionGauge.className = 'circular-gauge';
+
+                    // Get domain color for the collection
+                    const domainColor = this.data.domains[collection.domain] || '#4A90E2';
+
+                    // Calculate collection progress
+                    const totalNodes = collection.nodes.length;
+                    const activeNodes = collection.nodes.filter(nodeId => {
+                        return this.activeNodes.has(nodeId);
+                    }).length;
+                    const percentage = totalNodes > 0 ? (activeNodes / totalNodes) * 100 : 0;
+
+                    // Create gauge
                     this.createCircularGauge(
-                        document.getElementById('totalRarityGauge'),
-                        totalRarityPercentage,
-                        '#FFD700',
-                        totalRarityCount,
-                        totalRarityTotal,
-                        'Total Rarities'
+                        collectionGauge,
+                        percentage,
+                        domainColor,
+                        activeNodes,
+                        totalNodes,
+                        collection.title,
+                        true,
+                        collectionId
                     );
-                }
+
+                    // Add collection details if expanded
+                    if (this.activeCollections.has(collectionId)) {
+                        const details = document.createElement('div');
+                        details.className = 'collection-details';
+                        
+                        collection.nodes.forEach(nodeId => {
+                            const node = this.findNodeData(nodeId);
+                            if (node) { // Add null check
+                                const item = document.createElement('div');
+                                item.className = 'collection-item';
+                                const isActive = this.activeNodes.has(nodeId);
+                                item.innerHTML = `
+                                    <span class="status-icon" style="color: ${isActive ? '#00ff00' : '#ff0000'}">${isActive ? '✓' : '×'}</span>
+                                    <span class="node-title">${node.title}</span>
+                                `;
+                                details.appendChild(item);
+                            }
+                        });
+                        
+                        collectionGauge.appendChild(details);
+                    }
+
+                    collectionsContainer.appendChild(collectionGauge);
+                });
             }
 
             // Add method to toggle grid

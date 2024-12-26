@@ -6,6 +6,18 @@
         "math": "#BD10E0",
         "machine-learning": "#FF5733"
     },
+    "collections": {
+        "basic-cs": {
+            "title": "Basic CS",
+            "domain": "computer-science",
+            "nodes": ["algo", "sorting", "system-design"]
+        },
+        "web-basics": {
+            "title": "Web Fundamentals1",
+            "domain": "web-development",
+            "nodes": ["skilltree"]
+        }
+    },
     "nodes": {
         "fundamental": {
             "id": "root",
