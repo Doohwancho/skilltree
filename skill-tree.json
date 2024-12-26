@@ -52,6 +52,18 @@
                 "connections": [],
                 "rarity": "blue"
             }
+        ], 
+        "project": [
+            {
+                "id": "skilltree",
+                "type": "project",
+                "domain": "web-development",
+                "position": {"x": 0, "y": -150},
+                "title": "skill tree",
+                "explored": true,
+                "connections": [],
+                "rarity": "orange"
+            }
         ]
     }
 }

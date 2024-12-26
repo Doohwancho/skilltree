@@ -36,20 +36,21 @@
         /* Base node styles */
         .node {
             position: absolute;
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 10px;
+            padding: 3px;
             font-size: 12px;
             word-wrap: break-word;
             overflow: visible;
             position: relative;
             background-clip: padding-box;
+            z-index: 1;
         }
 
         /* Star shape with outline */
@@ -99,7 +100,6 @@
         }
 
         /* Circle shape */
-        /* Circle shape */
         .node.minor {
             width: 60px;
             height: 60px;
@@ -136,7 +136,7 @@
 
         /* Square shape */
         .node.keystone {
-            width: 65px;
+            width: 63px;
             height: 65px;
         }
 
@@ -148,6 +148,41 @@
             right: -2px;
             bottom: -2px;
             z-index: -1;
+        }
+
+        /* Heart shape */
+        .node.project {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            overflow: visible;
+        }
+
+        .node.project::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 2px;
+            right: -2px;
+            bottom: -2px;
+            /* Heart shape clip path */
+            clip-path: path('M50,90 C25,70 0,50 0,20 C0,9 10,0 25,0 C35,0 45,10 50,20 C55,10 65,0 75,0 C90,0 100,9 100,20 C100,50 75,70 50,90');
+            z-index: -1;
+        }
+
+        .node.project > div {
+            width: calc(100% - 8px); /* Slightly smaller than the outline */
+            height: calc(100% - 8px);
+            margin: 4px; 
+            padding-bottom: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Use slightly smaller heart for inner content */
+            clip-path: path('M50,85 C28,67 5,48 5,20 C5,10 15,2 28,2 C37,2 45,10 50,20 C55,10 63,2 72,2 C85,2 95,10 95,20 C95,48 72,67 50,85');
+            position: relative;
+            white-space: pre-line; /* Allow line breaks */
         }
 
         .node-content-locked {
@@ -194,7 +229,7 @@
             pointer-events: none;
             transition: all 0.3s;
             transform-origin: left center;
-            z-index: -1;
+            z-index: 2;
             /* Added to ensure edges appear under nodes */
         }
 
@@ -568,7 +603,6 @@
                 innerContainer.style.display = 'flex';
                 innerContainer.style.alignItems = 'center';
                 innerContainer.style.justifyContent = 'center';
-                innerContainer.style.padding = '5px';
                 innerContainer.style.clipPath = this.getClipPath(nodeData.type);
 
                 if (this.activeNodes.has(nodeData.id)) {
@@ -598,6 +632,8 @@
                         return 'circle(50%)';
                     case 'keystone':
                         return 'none';
+                    case 'project':
+                        return 'path("M45,85 C23,67 0,48 0,20 C0,10 10,2 23,2 C32,2 40,10 45,20 C50,10 58,2 67,2 C80,2 90,10 90,20 C90,48 67,67 45,85")';
                     default:
                         return 'none';
                 }
