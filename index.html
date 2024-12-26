@@ -184,6 +184,11 @@
             position: relative;
             white-space: pre-line; /* Allow line breaks */
         }
+        
+        .node.project > div > div {
+            transform: translateY(-100%);
+        }
+
 
         .node-content-locked {
             font-size: 14px;
@@ -608,7 +613,7 @@
                 if (this.activeNodes.has(nodeData.id)) {
                     // Active node
                     innerContainer.style.backgroundColor = this.data.domains[nodeData.domain];
-                    this.createTextContainer(innerContainer, nodeData.title);
+                    this.createTextContainer(innerContainer, nodeData.title); 
                 } else {
                     // Inactive node
                     innerContainer.style.backgroundColor = '#333';
@@ -659,7 +664,6 @@
                 // Specific adjustments based on node type
                 switch(nodeType) {
                     case 'project':
-                        // textWrapper.style.transform = 'translateY(-75%)';
                         break;
                     case 'fundamental':
                         textWrapper.style.width = '70%';
