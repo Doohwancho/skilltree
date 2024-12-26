@@ -640,17 +640,76 @@
             }
 
             createTextContainer(container, text) {
-                if (text.length > 20) {
-                    container.style.fontSize = '9px';
-                } else if (text.length > 15) {
-                    container.style.fontSize = '10px';
-                } else if (text.length > 10) {
-                    container.style.fontSize = '11px';
-                } else {
-                    container.style.fontSize = '12px';
+                if (!container || !text) return; // Add safety check
+
+                const textWrapper = document.createElement('div');
+                textWrapper.style.width = '80%';
+                textWrapper.style.display = 'flex';
+                textWrapper.style.flexDirection = 'column';
+                textWrapper.style.alignItems = 'center';
+                textWrapper.style.justifyContent = 'center';
+                textWrapper.style.wordBreak = 'break-word';
+                textWrapper.style.textAlign = 'center';
+                textWrapper.style.whiteSpace = 'pre-line';
+
+
+                // Safe check for parent element and its class
+                const nodeType = container.parentElement ? container.parentElement.className.split(' ')[1] : '';
+
+                // Specific adjustments based on node type
+                switch(nodeType) {
+                    case 'project':
+                        // textWrapper.style.transform = 'translateY(-75%)';
+                        break;
+                    case 'fundamental':
+                        textWrapper.style.width = '70%';
+                        break;
+                    case 'major':
+                        textWrapper.style.width = '75%';
+                        break;
                 }
 
-                container.textContent = text;
+                // Rest of the method remains the same...
+                if (text.length > 20) {
+                    textWrapper.style.fontSize = '8px';
+                } else if (text.length > 15) {
+                    textWrapper.style.fontSize = '9px';
+                } else if (text.length > 10) {
+                    textWrapper.style.fontSize = '10px';
+                } else {
+                    textWrapper.style.fontSize = '11px';
+                }
+
+                // Line break logic
+                const words = text.split(' ');
+                let line = '';
+                let lines = [];
+                
+                // Set threshold based on node type
+                let threshold = 12; // default
+                switch(nodeType) {
+                    case 'fundamental':
+                        threshold = 15;
+                        break;
+                    case 'minor':
+                        threshold = 10;
+                        break;
+                }
+
+                words.forEach(word => {
+                    if (line.length + word.length > threshold) {
+                        lines.push(line);
+                        line = word;
+                    } else {
+                        line = line ? line + ' ' + word : word;
+                    }
+                });
+                if (line) {
+                    lines.push(line);
+                }
+
+                textWrapper.textContent = lines.join('\n');
+                container.appendChild(textWrapper);
             }
 
             createEdges() {

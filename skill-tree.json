@@ -23,7 +23,7 @@
                 "type": "major",
                 "domain": "computer-science",
                 "position": {"x": 120, "y": 0},
-                "title": "Algorithms",
+                "title": "Algorithms check linebreak",
                 "explored": true,
                 "connections": ["sorting"],
                 "rarity": "purple"
