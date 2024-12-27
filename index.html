@@ -48,7 +48,6 @@
             font-size: 12px;
             word-wrap: break-word;
             overflow: visible;
-            position: relative;
             background-clip: padding-box;
             z-index: 1;
         }
@@ -154,7 +153,7 @@
         .node.project {
             width: 100px;
             height: 100px;
-            position: relative;
+            position: absolute;
             overflow: visible;
         }
 
@@ -620,6 +619,8 @@
                 }
 
                 node.id = nodeData.id;
+
+                // Position nodes using absolute positioning
                 node.style.left = `${nodeData.position.x}px`;
                 node.style.top = `${nodeData.position.y}px`;
 
@@ -797,26 +798,26 @@
 
                 if (!source || !target) return;
 
-                const sourceRect = source.getBoundingClientRect();
-                const targetRect = target.getBoundingClientRect();
+                // Get nodes' positions directly from the stored data
+                const sourceData = this.findNodeData(sourceId);
+                const targetData = this.findNodeData(targetId);
 
-                // Get positions relative to container
-                const containerRect = this.container.getBoundingClientRect();
+                if (!sourceData || !targetData) return;
 
-                // Calculate center points
-                const sourceX = sourceRect.left - containerRect.left + sourceRect.width / 2;
-                const sourceY = sourceRect.top - containerRect.top + sourceRect.height / 2;
-                const targetX = targetRect.left - containerRect.left + targetRect.width / 2;
-                const targetY = targetRect.top - containerRect.top + targetRect.height / 2;
+                // Use stored positions for calculations
+                const sourceX = sourceData.position.x + source.offsetWidth / 2;
+                const sourceY = sourceData.position.y + source.offsetHeight / 2;
+                const targetX = targetData.position.x + target.offsetWidth / 2;
+                const targetY = targetData.position.y + target.offsetHeight / 2;
 
-                // Calculate angle
+                // Calculate angle for the edge
                 const dx = targetX - sourceX;
                 const dy = targetY - sourceY;
                 const angle = Math.atan2(dy, dx);
 
                 // Get node radii (half of width for simplicity)
-                const sourceRadius = sourceRect.width / 2;
-                const targetRadius = targetRect.width / 2;
+                const sourceRadius = source.offsetWidth / 2;
+                const targetRadius = target.offsetWidth / 2;
 
                 // Calculate edge start and end points at node boundaries
                 const startX = sourceX + sourceRadius * Math.cos(angle);
@@ -824,21 +825,39 @@
                 const endX = targetX - targetRadius * Math.cos(angle);
                 const endY = targetY - targetRadius * Math.sin(angle);
 
-                // Calculate new length and position
+                // Calculate length
                 const length = Math.sqrt(
                     Math.pow(endX - startX, 2) +
                     Math.pow(endY - startY, 2)
                 );
 
-                // Position the edge
+                // Update edge element position and rotation
                 edgeElement.style.width = `${length}px`;
                 edgeElement.style.left = `${startX}px`;
                 edgeElement.style.top = `${startY}px`;
                 edgeElement.style.transform = `rotate(${angle * 180 / Math.PI}deg)`;
             }
 
+            updateConnectedEdges(nodeId) {
+                // Update edges where this node is the source
+                const outgoingEdges = Array.from(this.container.getElementsByClassName('edge'))
+                    .filter(edge => edge.dataset.source === nodeId);
+                
+                outgoingEdges.forEach(edge => {
+                    this.updateEdgePosition(edge, edge.dataset.source, edge.dataset.target);
+                });
+
+                // Update edges where this node is the target
+                const incomingEdges = Array.from(this.container.getElementsByClassName('edge'))
+                    .filter(edge => edge.dataset.target === nodeId);
+                
+                incomingEdges.forEach(edge => {
+                    this.updateEdgePosition(edge, edge.dataset.source, edge.dataset.target);
+                });
+            }
+
             setupEventListeners() {
-                // Node click handling
+                // feat1: Node click handling to toggle on/off
                 this.container.addEventListener('click', (e) => {
                     const node = e.target.closest('.node');
                     if (node) {
@@ -846,33 +865,95 @@
                     }
                 });
 
-                // Dragging
-                let isDragging = false;
+                //feat2: Node dragging & background dragging
+                let draggedNode = null;
+                let dragOffset = { x: 0, y: 0 };
+                let isNodeDragging = false;
+                let initialNodePosition = { x: 0, y: 0 };
+
+                // Background panning
+                let isBackgroundDragging = false;
                 let startX, startY;
 
-                // Add mousedown listener to the whole window
+                // Node dragging handlers
+                this.container.addEventListener('mousedown', (e) => {
+                    const node = e.target.closest('.node');
+                    if (node) {
+                        e.stopPropagation(); // Prevent background drag when dragging node
+                        draggedNode = node;
+                        isNodeDragging = true;
+                        
+                        // Store initial mouse position and node position
+                        const nodeData = this.findNodeData(node.id);
+                        initialNodePosition = {
+                            x: nodeData.position.x,
+                            y: nodeData.position.y
+                        };
+                        
+                        dragOffset = {
+                            x: e.clientX,
+                            y: e.clientY
+                        };
+                    }
+                });
+
+                // Background panning handlers
                 window.addEventListener('mousedown', (e) => {
-                    // Only start drag if not clicking a node
+                    // Only start background drag if not clicking a node
                     if (!e.target.closest('.node')) {
-                        isDragging = true;
+                        isBackgroundDragging = true;
                         startX = e.clientX - this.offset.x;
                         startY = e.clientY - this.offset.y;
                     }
                 });
 
                 window.addEventListener('mousemove', (e) => {
-                    if (!isDragging) return;
+                    
 
-                    this.offset.x = e.clientX - startX;
-                    this.offset.y = e.clientY - startY;
-                    this.updateTransform();
+                    // Node dragging
+                    if (isNodeDragging && draggedNode) {
+                        e.preventDefault();
+                        
+                        // Calculate the movement delta
+                        const dx = (e.clientX - dragOffset.x) / this.scale;
+                        const dy = (e.clientY - dragOffset.y) / this.scale;
+                        
+                        // Calculate new position based on initial position plus delta
+                        const newX = initialNodePosition.x + dx;
+                        const newY = initialNodePosition.y + dy;
+                        
+                        // Update node position
+                        draggedNode.style.left = `${newX}px`;
+                        draggedNode.style.top = `${newY}px`;
+
+                        // Update node data
+                        const nodeId = draggedNode.id;
+                        const nodeData = this.findNodeData(nodeId);
+                        if (nodeData) {
+                            nodeData.position.x = Math.round(newX);
+                            nodeData.position.y = Math.round(newY);
+                        }
+
+                        // Update connected edges
+                        this.updateConnectedEdges(nodeId);
+                    }
+                    
+                    // Background panning
+                    if (isBackgroundDragging && !isNodeDragging) {
+                        this.offset.x = e.clientX - startX;
+                        this.offset.y = e.clientY - startY;
+                        this.updateTransform();
+                    }
                 });
 
-                document.addEventListener('mouseup', () => {
-                    isDragging = false;
+                window.addEventListener('mouseup', () => {
+                    draggedNode = null;
+                    isNodeDragging = false;
+                    isBackgroundDragging = false;
                 });
 
-                // Zooming
+
+                // feat3: Zooming
                 document.getElementById('zoomIn').addEventListener('click', () => {
                     this.scale *= 1.2;
                     this.updateTransform();
