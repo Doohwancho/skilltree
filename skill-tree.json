@@ -6,6 +6,39 @@
         "math": "#BD10E0",
         "machine-learning": "#FF5733"
     },
+    "domainLabels": {
+        "learn": "학습",
+        "computer-science": "CS",
+        "web-development": "Web",
+        "math": "Math",
+        "machine-learning": "ML"
+    },
+    "rarities": {
+        "white": {
+            "label": "기본",
+            "color": "#FFFFFF"
+        },
+        "green": {
+            "label": "일반",
+            "color": "#008000"
+        },
+        "blue": {
+            "label": "희귀",
+            "color": "#0000FF"
+        },
+        "purple": {
+            "label": "영웅",
+            "color": "#800080"
+        },
+        "orange": {
+            "label": "전설",
+            "color": "#FFA500"
+        },
+        "gold": {
+            "label": "초월",
+            "color": "#FFD700"
+        }
+    },
     "collections": {
         "basic-cs": {
             "title": "Basic CS",

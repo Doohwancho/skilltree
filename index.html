@@ -24,6 +24,14 @@
             width: 100vw;
             height: 100vh;
             position: relative;
+            pointer-events: all;
+        }
+
+        #background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
         }
 
         #skillTree {
@@ -225,6 +233,75 @@
             background-color: var(--rarity-white);
         }
 
+        .node-creation-dialog {
+            position: absolute;
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 250px;
+            color: white;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+        }
+
+        .dialog-header {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #666;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        .form-group select,
+        .form-group input {
+            /* width: 100%;             */
+            width: -webkit-fill-available;            
+            padding: 8px;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 4px;
+            color: white;
+        }
+
+        .form-group text {
+            
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+
+        .dialog-buttons button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #4a90e2;
+            color: white;
+        }
+
+        .dialog-buttons button:last-child {
+            background: #666;
+        }
+
+        .dialog-buttons button:hover {
+            opacity: 0.9;
+        }
+
         .edge {
             position: absolute;
             background: #4a90e2;
@@ -312,7 +389,7 @@
         }
 
         /* Grid styles */
-        .grid {
+        /* .grid {
             position: absolute;
             top: 0;
             left: 0;
@@ -325,7 +402,7 @@
         .grid-line {
             stroke: rgba(255, 255, 255, 0.1);
             stroke-width: 1;
-        }
+        } */
 
         /* Add these styles to your existing CSS */
         .gauge-bar {
@@ -517,55 +594,83 @@
                 this.activeNodes = new Set();
                 this.activeEdges = new Set();
 
-                this.showGrid = true; // Add this
-                this.data.domains = {
-                    "learn": "#4A90E2",
-                    "computer-science": "#F5A623",
-                    "web-development": "#7ED321",
-                    "math": "#BD10E0",
-                    "machine-learning": "#FF5733"
-                };
+                this.showGrid = true; 
+
+                // Extract node types dynamically from data
+                this.nodeTypes = Object.keys(data.nodes).map(type => ({
+                    id: type,
+                    label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize first letter
+                }));
+
+                // Load domains with their labels and colors from data
+                this.domains = {};
+                Object.entries(data.domains).forEach(([id, color]) => {
+                    this.domains[id] = {
+                        color: color,
+                        label: data.domainLabels?.[id] || id // Use label from JSON if available, otherwise use ID
+                    };
+                });
+
+                // Load rarities from data
+                this.rarities = {};
+                Object.entries(data.rarities).forEach(([id, info]) => {
+                    this.rarities[id] = {
+                        color: info.color,
+                        label: info.label
+                    };
+                });
+
+                // this.data.domains = {
+                //     "learn": "#4A90E2",
+                //     "computer-science": "#F5A623",
+                //     "web-development": "#7ED321",
+                //     "math": "#BD10E0",
+                //     "machine-learning": "#FF5733"
+                // };
 
                 this.activeCollections = new Set(); 
+                this.isCreatingNode = false;
+                this.newNodePosition = { x: 0, y: 0 };
 
                 this.init();
             }
 
-            createGrid() {
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.classList.add('grid');
-                svg.setAttribute('width', '100%');
-                svg.setAttribute('height', '100%');
+            // createGrid() {
+            //     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            //     svg.classList.add('grid');
+            //     svg.setAttribute('width', '100%');
+            //     svg.setAttribute('height', '100%');
 
-                // Create grid lines
-                const gridSize = 50;
-                const width = this.container.clientWidth;
-                const height = this.container.clientHeight;
+            //     // Create grid lines
+            //     const gridSize = 50;
+            //     const width = this.container.clientWidth;
+            //     const height = this.container.clientHeight;
 
-                // Vertical lines
-                for (let x = 0; x <= width; x += gridSize) {
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute('x1', x);
-                    line.setAttribute('y1', 0);
-                    line.setAttribute('x2', x);
-                    line.setAttribute('y2', height);
-                    line.classList.add('grid-line');
-                    svg.appendChild(line);
-                }
+            //     // Vertical lines
+            //     for (let x = 0; x <= width; x += gridSize) {
+            //         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            //         line.setAttribute('x1', x);
+            //         line.setAttribute('y1', 0);
+            //         line.setAttribute('x2', x);
+            //         line.setAttribute('y2', height);
+            //         line.classList.add('grid-line');
+            //         svg.appendChild(line);
+            //     }
 
-                // Horizontal lines
-                for (let y = 0; y <= height; y += gridSize) {
-                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                    line.setAttribute('x1', 0);
-                    line.setAttribute('y1', y);
-                    line.setAttribute('x2', width);
-                    line.setAttribute('y2', y);
-                    line.classList.add('grid-line');
-                    svg.appendChild(line);
-                }
+            //     // Horizontal lines
+            //     for (let y = 0; y <= height; y += gridSize) {
+            //         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            //         line.setAttribute('x1', 0);
+            //         line.setAttribute('y1', y);
+            //         line.setAttribute('x2', width);
+            //         line.setAttribute('y2', y);
+            //         line.classList.add('grid-line');
+            //         svg.appendChild(line);
+            //     }
 
-                this.container.appendChild(svg);
-            }
+            //     this.container.appendChild(svg);
+            //     this.gridElement = svg;
+            // }
 
             isEdgeActive(edge) {
                 const sourceNode = this.findNodeData(edge.source);
@@ -575,7 +680,7 @@
 
             init() {
                 this.setupContainer();
-                this.createGrid();
+                // this.createGrid();
 
                 // Initialize active nodes first
                 const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
@@ -676,6 +781,133 @@
                 }
 
                 node.appendChild(innerContainer);
+            }
+
+            startNodeCreation(e) {
+                const rect = this.container.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / this.scale - this.offset.x;
+                const y = (e.clientY - rect.top) / this.scale - this.offset.y;
+                
+                this.isCreatingNode = true;
+                this.newNodePosition = { x, y };
+                this.showNodeCreationDialog(x, y);
+            }
+
+            showNodeCreationDialog(x, y) {
+                const existingDialog = document.querySelector('.node-creation-dialog');
+                if (existingDialog) existingDialog.remove();
+
+                const dialog = document.createElement('div');
+                dialog.className = 'node-creation-dialog';
+                dialog.style.left = `${x}px`;
+                dialog.style.top = `${y}px`;
+
+                // Use an instance method instead of onclick attribute
+                const createNewNodeHandler = () => {
+                    this.createNewNode();
+                };
+
+                const cancelCreationHandler = () => {
+                    this.cancelNodeCreation();
+                };
+
+                dialog.innerHTML = `
+                    <div class="dialog-header">Create New Node</div>
+                    <div class="dialog-content">
+                        <div class="form-group">
+                            <label>Shape:</label>
+                            <select id="nodeType">
+                                ${this.nodeTypes.map(type => 
+                                    `<option value="${type.id}">${type.label}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Domain:</label>
+                            <select id="nodeDomain">
+                                ${Object.entries(this.domains).map(([id, info]) => 
+                                    `<option value="${id}">${info.label}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Rarity:</label>
+                            <select id="nodeRarity">
+                                ${Object.entries(this.rarities).map(([id, info]) => 
+                                    `<option value="${id}">${info.label}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Title:</label>
+                            <input type="text" id="nodeTitle" placeholder="Enter node title">
+                        </div>
+                        <div class="dialog-buttons">
+                            <button id="createNodeBtn">Create</button>
+                            <button id="cancelNodeBtn">Cancel</button>
+                        </div>
+                    </div>
+                `;
+
+                this.container.appendChild(dialog);
+
+                // Add event listeners after appending to DOM
+                document.addEventListener('keydown', this.handleEscKey);
+                document.getElementById('createNodeBtn').addEventListener('click', createNewNodeHandler);
+                document.getElementById('cancelNodeBtn').addEventListener('click', cancelCreationHandler);
+                document.addEventListener('keydown', this.handleEscKey);
+            }
+
+            // Add method to handle ESC key
+            handleEscKey = (e) => {
+                if (e.key === 'Escape') {
+                    this.cancelNodeCreation();
+                }
+            }
+
+            // Add method to cancel node creation
+            cancelNodeCreation() {
+                this.isCreatingNode = false;
+                const dialog = document.querySelector('.node-creation-dialog');
+                if (dialog) dialog.remove();
+                document.removeEventListener('keydown', this.handleEscKey);
+            }
+
+            // Add method to create new node
+            createNewNode() {
+                const type = document.getElementById('nodeType').value;
+                const domain = document.getElementById('nodeDomain').value;
+                const rarity = document.getElementById('nodeRarity').value;
+                const title = document.getElementById('nodeTitle').value;
+
+                if (!title) {
+                    alert('Please enter a title for the node');
+                    return;
+                }
+
+                // Create new node data
+                const newNode = {
+                    id: `node-${Date.now()}`, // Generate unique ID
+                    type: type,
+                    domain: domain,
+                    position: this.newNodePosition,
+                    title: title,
+                    explored: false,
+                    connections: [],
+                    rarity: rarity
+                };
+
+                // Add to appropriate node type array in data
+                if (!Array.isArray(this.data.nodes[type])) {
+                    this.data.nodes[type] = [];
+                }
+                this.data.nodes[type].push(newNode);
+
+                // Create the node in the UI
+                this.createNode(newNode);
+
+                // Close dialog
+                this.cancelNodeCreation();
             }
 
             getClipPath(type) {
@@ -857,6 +1089,28 @@
             }
 
             setupEventListeners() {
+                //debug purpose code, find detailed info on clicked DOM element
+                // this.container.parentElement.addEventListener('click', (e) => {
+                //     alert("clicked!!!!");
+                //     console.log('Clicked element:', e.target);
+                //     console.log('Clicked element tag:', e.target.tagName);
+                //     console.log('Clicked element class:', e.target.className);
+                //     console.log('Container element:', this.container);
+                    
+                //     // Log the entire path from clicked element up to document
+                //     let element = e.target;
+                //     let path = [];
+                //     while (element) {
+                //         path.push({
+                //             tag: element.tagName,
+                //             id: element.id,
+                //             class: element.className
+                //         });
+                //         element = element.parentElement;
+                //     }
+                //     console.log('DOM Path:', path);
+                // });
+
                 // feat1: Node click handling to toggle on/off
                 this.container.addEventListener('click', (e) => {
                     const node = e.target.closest('.node');
@@ -908,8 +1162,6 @@
                 });
 
                 window.addEventListener('mousemove', (e) => {
-                    
-
                     // Node dragging
                     if (isNodeDragging && draggedNode) {
                         e.preventDefault();
@@ -974,6 +1226,22 @@
                     const delta = e.deltaY > 0 ? 0.9 : 1.1;
                     this.scale *= delta;
                     this.updateTransform();
+                });
+
+                // feat4: create new node 
+                // Add double click handler for node creation
+                this.container.parentElement.addEventListener('dblclick', (e) => {
+                    const isSkillTree = e.target.closest('#skillTree');
+                    const isStats = e.target.closest('#stats');
+                    const isControls = e.target.closest('#controls');
+                    const isDialog = e.target.closest('.node-creation-dialog');
+
+                    // Only proceed if we're not clicking any of these elements
+                    if (!isSkillTree && !isStats && !isControls && !isDialog) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.startNodeCreation(e);
+                    }
                 });
             }
 
@@ -1483,21 +1751,21 @@
             }
 
             // Add method to toggle grid
-            toggleGrid() {
-                this.showGrid = !this.showGrid;
-                const grid = this.container.querySelector('.grid');
-                if (grid) {
-                    grid.style.display = this.showGrid ? 'block' : 'none';
-                }
-            }
-
+            // toggleGrid() {
+            //     this.showGrid = !this.showGrid;
+            //     const grid = this.container.querySelector('.grid');
+            //     if (grid) {
+            //         grid.style.display = this.showGrid ? 'block' : 'none';
+            //     }
+            // }
         }
 
+        let skillTree;
 
         fetch('skill-tree.json')
             .then(response => response.json())
             .then(data => {
-                const skillTree = new SkillTree('skillTree', data);
+                skillTree = new SkillTree('skillTree', data);
             });
     </script>
 </body>
