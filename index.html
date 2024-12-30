@@ -620,6 +620,9 @@
                     };
                 });
 
+                // Initialize lastNodeId
+                this.lastNodeId = this.initializeLastNodeId();
+
                 // this.data.domains = {
                 //     "learn": "#4A90E2",
                 //     "computer-science": "#F5A623",
@@ -633,6 +636,42 @@
                 this.newNodePosition = { x: 0, y: 0 };
 
                 this.init();
+            }
+
+            initializeLastNodeId() {
+                let maxId = 0;
+                const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
+                
+                allNodes.forEach(node => {
+                    // Convert existing IDs to numbers
+                    if (node.id) {
+                        const oldId = node.id;
+                        maxId++;
+                        const newId = maxId;
+                        
+                        // Update the node's ID
+                        node.id = newId;
+                        
+                        // Update any connections that reference this node
+                        allNodes.forEach(otherNode => {
+                            if (otherNode.connections) {
+                                otherNode.connections = otherNode.connections.map(conn => 
+                                    conn === oldId ? newId : conn
+                                );
+                            }
+                        });
+
+                        // Update collections
+                        if (this.data.collections) {
+                            Object.values(this.data.collections).forEach(collection => {
+                                collection.nodes = collection.nodes.map(nodeId =>
+                                    nodeId === oldId ? newId : nodeId
+                                );
+                            });
+                        }
+                    }
+                });
+                return maxId;
             }
 
             // createGrid() {
@@ -723,7 +762,8 @@
                     node.classList.add('rarity-white'); // default rarity
                 }
 
-                node.id = nodeData.id;
+                // Convert numeric ID to string for HTML element ID
+                node.id = String(nodeData.id);;
 
                 // Position nodes using absolute positioning
                 node.style.left = `${nodeData.position.x}px`;
@@ -742,13 +782,16 @@
                     .filter(node => node)
                     .some(node =>
                         node.connections &&
-                        node.connections.includes(nodeId) &&
+                        node.connections.includes(nodeData.title) &&
                         this.activeNodes.has(node.id)
                     );
 
                 // Check outgoing connections
                 const hasActiveOutgoingConnection = nodeData.connections &&
-                    nodeData.connections.some(targetId => this.activeNodes.has(targetId));
+                    nodeData.connections.some(targetTitle => {
+                        const targetNode = this.findNodeByTitle(targetTitle);
+                        return targetNode && this.activeNodes.has(targetNode.id);
+                    });
 
                 return hasActiveIncomingConnection || hasActiveOutgoingConnection;
             }
@@ -766,7 +809,7 @@
                 innerContainer.style.justifyContent = 'center';
                 innerContainer.style.clipPath = this.getClipPath(nodeData.type);
 
-                if (this.activeNodes.has(nodeData.id)) {
+                if (nodeData.explored) {
                     // Active node
                     innerContainer.style.backgroundColor = this.data.domains[nodeData.domain];
                     this.createTextContainer(innerContainer, nodeData.title); 
@@ -885,9 +928,12 @@
                     return;
                 }
 
+                // Increment lastNodeId for new numeric ID
+                this.lastNodeId++;
+
                 // Create new node data
                 const newNode = {
-                    id: `node-${Date.now()}`, // Generate unique ID
+                    id: this.lastNodeId,
                     type: type,
                     domain: domain,
                     position: this.newNodePosition,
@@ -905,6 +951,9 @@
 
                 // Create the node in the UI
                 this.createNode(newNode);
+
+                // Update statistics
+                this.updateStats();
 
                 // Close dialog
                 this.cancelNodeCreation();
@@ -1006,18 +1055,20 @@
                 // Create edges from connections
                 allNodes.forEach(node => {
                     if (node.connections) {
-                        node.connections.forEach(targetId => {
-                            const edgeElement = document.createElement('div');
-                            edgeElement.className = 'edge';
-                            this.updateEdgePosition(edgeElement, node.id, targetId);
-                            edgeElement.dataset.source = node.id;
-                            edgeElement.dataset.target = targetId;
-                            this.container.appendChild(edgeElement);
+                        node.connections.forEach(targetTitle => {
+                            const targetNode = this.findNodeByTitle(targetTitle);
+                            if (targetNode) {
+                                const edgeElement = document.createElement('div');
+                                edgeElement.className = 'edge';
+                                this.updateEdgePosition(edgeElement, node.id, targetNode.id);
+                                edgeElement.dataset.source = node.id;
+                                edgeElement.dataset.target = targetNode.id;
+                                this.container.appendChild(edgeElement);
 
-                            // If both nodes are explored, activate the edge
-                            if (node.explored && this.findNodeData(targetId).explored) {
-                                this.activeEdges.add(`${node.id}-${targetId}`);
-                                edgeElement.classList.add('active');
+                                if (node.explored && targetNode.explored) {
+                                    this.activeEdges.add(`${node.id}-${targetNode.id}`);
+                                    edgeElement.classList.add('active');
+                                }
                             }
                         });
                     }
@@ -1246,46 +1297,57 @@
             }
 
             toggleNode(node) {
-                const nodeId = node.id;
-                if (this.activeNodes.has(nodeId)) {
-                    this.deactivateNode(node);
-                } else {
+                const nodeId = parseInt(node.id); // Convert to number since DOM IDs are strings
+                const nodeData = this.findNodeData(nodeId);
+                
+                if (!nodeData) return;
+                
+                // Update the explored status in the node data
+                nodeData.explored = !nodeData.explored;
+                
+                if (nodeData.explored) {
                     this.activateNode(node);
+                } else {
+                    this.deactivateNode(node);
                 }
+                
                 this.updateStats();
             }
 
             activateNode(node) {
-                const nodeId = node.id;
+                const nodeId = parseInt(node.id);
                 const nodeData = this.findNodeData(nodeId);
+                if (!nodeData) return;                
 
                 this.activeNodes.add(nodeId);
+                nodeData.explored = true;
                 this.updateNodeDisplay(node, nodeData);
 
-                // Update edges
-                nodeData.connections?.forEach(targetId => {
-                    if (this.activeNodes.has(targetId)) {
-                        this.activeEdges.add(`${nodeId}-${targetId}`);
-                        const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
-                            .find(el =>
-                                (el.dataset.source === nodeId && el.dataset.target === targetId) ||
-                                (el.dataset.source === targetId && el.dataset.target === nodeId)
-                            );
-                        if (edgeElement) edgeElement.classList.add('active');
-                    }
-                });
+                // Update edges for outgoing connections
+                nodeData.connections?.forEach(targetTitle => {
+                        const targetNode = this.findNodeByTitle(targetTitle);
+                        if (targetNode && this.activeNodes.has(targetNode.id)) {
+                            this.activeEdges.add(`${nodeId}-${targetNode.id}`);
+                            const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
+                                .find(el =>
+                                    (el.dataset.source === String(nodeId) && el.dataset.target === String(targetNode.id)) ||
+                                    (el.dataset.source === String(targetNode.id) && el.dataset.target === String(nodeId))
+                                );
+                            if (edgeElement) edgeElement.classList.add('active');
+                        }
+                    });
 
-                // Update edges where this node is the target
+                // Update edges for incoming connections
                 Object.values(this.data.nodes)
                     .flat()
-                    .filter(n => n && n.connections?.includes(nodeId))
+                    .filter(n => n && n.connections?.includes(nodeData.title))
                     .forEach(sourceNode => {
                         if (this.activeNodes.has(sourceNode.id)) {
                             this.activeEdges.add(`${sourceNode.id}-${nodeId}`);
                             const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
                                 .find(el =>
-                                    (el.dataset.source === sourceNode.id && el.dataset.target === nodeId) ||
-                                    (el.dataset.source === nodeId && el.dataset.target === sourceNode.id)
+                                    (el.dataset.source === String(sourceNode.id) && el.dataset.target === String(nodeId)) ||
+                                    (el.dataset.source === String(nodeId) && el.dataset.target === String(sourceNode.id))
                                 );
                             if (edgeElement) edgeElement.classList.add('active');
                         }
@@ -1295,33 +1357,39 @@
             }
 
             deactivateNode(node) {
-                const nodeId = node.id;
+                const nodeId = parseInt(node.id); // Convert to number if it's a string
                 const nodeData = this.findNodeData(nodeId);
 
+                if (!nodeData) return;
+
                 this.activeNodes.delete(nodeId);
+                nodeData.explored = false;
                 this.updateNodeDisplay(node, nodeData);
 
-                // Update edges
-                nodeData.connections?.forEach(targetId => {
-                    this.activeEdges.delete(`${nodeId}-${targetId}`);
-                    const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
-                        .find(el =>
-                            (el.dataset.source === nodeId && el.dataset.target === targetId) ||
-                            (el.dataset.source === targetId && el.dataset.target === nodeId)
-                        );
-                    if (edgeElement) edgeElement.classList.remove('active');
+                // Update edges for outgoing connections
+                nodeData.connections?.forEach(targetTitle => {
+                    const targetNode = this.findNodeByTitle(targetTitle);
+                    if (targetNode) {
+                        this.activeEdges.delete(`${nodeId}-${targetNode.id}`);
+                        const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
+                            .find(el =>
+                                (el.dataset.source === String(nodeId) && el.dataset.target === String(targetNode.id)) ||
+                                (el.dataset.source === String(targetNode.id) && el.dataset.target === String(nodeId))
+                            );
+                        if (edgeElement) edgeElement.classList.remove('active');
+                    }
                 });
 
-                // Update edges where this node is the target
+                // Update edges for incoming connections
                 Object.values(this.data.nodes)
                     .flat()
-                    .filter(n => n && n.connections?.includes(nodeId))
+                    .filter(n => n && n.connections?.includes(nodeData.title))
                     .forEach(sourceNode => {
                         this.activeEdges.delete(`${sourceNode.id}-${nodeId}`);
                         const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
                             .find(el =>
-                                (el.dataset.source === sourceNode.id && el.dataset.target === nodeId) ||
-                                (el.dataset.source === nodeId && el.dataset.target === sourceNode.id)
+                                (el.dataset.source === String(sourceNode.id) && el.dataset.target === String(nodeId)) ||
+                                (el.dataset.source === String(nodeId) && el.dataset.target === String(sourceNode.id))
                             );
                         if (edgeElement) edgeElement.classList.remove('active');
                     });
@@ -1332,20 +1400,23 @@
             updateConnectedNodesDisplay(nodeId) {
                 const nodeData = this.findNodeData(nodeId);
 
-                // Update nodes that this node connects to
+                // Update nodes that this node connects to (outgoing connections)
                 if (nodeData.connections) {
-                    nodeData.connections.forEach(targetId => {
-                        const targetNode = document.getElementById(targetId);
-                        if (targetNode) {
-                            this.updateNodeDisplay(targetNode, this.findNodeData(targetId));
+                    nodeData.connections.forEach(targetTitle => {
+                        const targetNodeData = this.findNodeByTitle(targetTitle);
+                        if (targetNodeData) {
+                            const targetElement = document.getElementById(targetNodeData.id);
+                            if (targetElement) {
+                                this.updateNodeDisplay(targetElement, targetNodeData);
+                            }
                         }
                     });
                 }
 
-                // Update nodes that connect to this node
+                // Update nodes that connect to this node (incoming connections)
                 Object.values(this.data.nodes)
                     .flat()
-                    .filter(node => node && node.connections && node.connections.includes(nodeId))
+                    .filter(node => node && node.connections && node.connections.includes(nodeData.title))
                     .forEach(sourceNode => {
                         const sourceElement = document.getElementById(sourceNode.id);
                         if (sourceElement) {
@@ -1368,7 +1439,19 @@
 
             findNodeData(nodeId) {
                 const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
-                return allNodes.find(node => node.id === nodeId);
+                // Convert string ID from DOM to number if needed
+                const numericId = typeof nodeId === 'string' ? parseInt(nodeId) : nodeId;
+                return allNodes.find(node => node.id === numericId);
+            }
+
+            findNodeByTitle(title) {
+                const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
+                return allNodes.find(node => node.title === title);
+            }
+
+            findNodeIdByTitle(title) {
+                const node = this.findNodeByTitle(title);
+                return node ? node.id : null;
             }
 
             findEdgeElement(edge) {
@@ -1707,8 +1790,10 @@
 
                     // Calculate collection progress
                     const totalNodes = collection.nodes.length;
-                    const activeNodes = collection.nodes.filter(nodeId => {
-                        return this.activeNodes.has(nodeId);
+                    const activeNodes = collection.nodes.filter(nodeTitle => {
+                        const node = this.findNodeByTitle(nodeTitle);
+                        // Convert node.id to number since activeNodes stores numeric IDs
+                        return node && this.activeNodes.has(parseInt(node.id));
                     }).length;
                     const percentage = totalNodes > 0 ? (activeNodes / totalNodes) * 100 : 0;
 
@@ -1730,11 +1815,11 @@
                         details.className = 'collection-details';
                         
                         collection.nodes.forEach(nodeId => {
-                            const node = this.findNodeData(nodeId);
-                            if (node) { // Add null check
+                            const node = this.findNodeByTitle(nodeId); 
+                            if (node) {
                                 const item = document.createElement('div');
                                 item.className = 'collection-item';
-                                const isActive = this.activeNodes.has(nodeId);
+                                const isActive = this.activeNodes.has(parseInt(node.id));
                                 item.innerHTML = `
                                     <span class="status-icon" style="color: ${isActive ? '#00ff00' : '#ff0000'}">${isActive ? '✓' : '×'}</span>
                                     <span class="node-title">${node.title}</span>

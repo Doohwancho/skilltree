@@ -43,40 +43,40 @@
         "basic-cs": {
             "title": "Basic CS",
             "domain": "computer-science",
-            "nodes": ["algo", "sorting", "system-design"]
+            "nodes": ["Sorting Algorithms", "System Design"]
         },
         "web-basics": {
             "title": "Web Fundamentals1",
             "domain": "web-development",
-            "nodes": ["skilltree"]
+            "nodes": ["skill tree"]
         }
     },
     "nodes": {
         "fundamental": {
-            "id": "root",
+            "id": 1,
             "type": "fundamental",
             "domain": "learn",
             "position": {"x": 0, "y": 0},
             "title": "Core Skills",
             "explored": true,
-            "connections": ["algo"],
+            "connections": ["Algorithms check linebreak"],
             "rarity": "gold"
         },
         "major": [
             {
-                "id": "algo",
+                "id": 2,
                 "type": "major",
                 "domain": "computer-science",
                 "position": {"x": 200, "y": 0},
                 "title": "Algorithms check linebreak",
                 "explored": true,
-                "connections": ["sorting"],
+                "connections": ["Sorting Algorithms"],
                 "rarity": "purple"
             }
         ],
         "minor": [
             {
-                "id": "sorting",
+                "id": 3,
                 "type": "minor",
                 "domain": "computer-science",
                 "position": {"x": 350, "y": 0},
@@ -88,7 +88,7 @@
         ],
         "keystone": [
             {
-                "id": "system-design",
+                "id": 4,
                 "type": "keystone",
                 "domain": "computer-science",
                 "position": {"x": 150, "y": 150},
@@ -100,7 +100,7 @@
         ], 
         "project": [
             {
-                "id": "skilltree",
+                "id": 5,
                 "type": "project",
                 "domain": "web-development",
                 "position": {"x": 0, "y": 150},
