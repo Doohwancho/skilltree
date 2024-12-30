@@ -630,22 +630,10 @@
                 }));
 
                 // Load domains with their labels and colors from data
-                this.domains = {};
-                Object.entries(data.domains).forEach(([id, color]) => {
-                    this.domains[id] = {
-                        color: color,
-                        label: data.domainLabels?.[id] || id // Use label from JSON if available, otherwise use ID
-                    };
-                });
+                this.domains = data.domains;
 
                 // Load rarities from data
-                this.rarities = {};
-                Object.entries(data.rarities).forEach(([id, info]) => {
-                    this.rarities[id] = {
-                        color: info.color,
-                        label: info.label
-                    };
-                });
+                this.rarities = data.rarities;
 
                 // Initialize lastNodeId
                 this.lastNodeId = this.initializeLastNodeId();
@@ -843,8 +831,9 @@
 
                 if (nodeData.explored) {
                     // Active node
-                    innerContainer.style.backgroundColor = this.data.domains[nodeData.domain];
-                    this.createTextContainer(innerContainer, nodeData.title); 
+                    const domainInfo = this.data.domains[nodeData.domain];
+                    innerContainer.style.backgroundColor = domainInfo ? domainInfo.color : '#333';
+                    this.createTextContainer(innerContainer, nodeData.title);
                 } else {
                     // Inactive node
                     innerContainer.style.backgroundColor = '#333';
@@ -900,16 +889,16 @@
                         <div class="form-group">
                             <label>Domain:</label>
                             <select id="nodeDomain">
-                                ${Object.entries(this.domains).map(([id, info]) => 
-                                    `<option value="${id}">${info.label}</option>`
+                                ${Object.entries(this.domains).map(([id, domainInfo]) => 
+                                    `<option value="${id}">${domainInfo.label}</option>`
                                 ).join('')}
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Rarity:</label>
                             <select id="nodeRarity">
-                                ${Object.entries(this.rarities).map(([id, info]) => 
-                                    `<option value="${id}">${info.label}</option>`
+                                ${Object.entries(this.rarities).map(([id, rarityInfo]) => 
+                                    `<option value="${id}">${rarityInfo.label}</option>`
                                 ).join('')}
                             </select>
                         </div>
@@ -2009,22 +1998,26 @@
 
                 // Count totals by domain and rarity
                 const domainTotals = {};
-                const rarityTotals = {
-                    gold: 0,
-                    orange: 0,
-                    purple: 0,
-                    blue: 0,
-                    green: 0,
-                    white: 0
-                };
+                const rarityTotals = {};
+
+                // Initialize totals
+                Object.keys(this.data.domains).forEach(domain => {
+                    domainTotals[domain] = 0;
+                });
+                
+                Object.keys(this.data.rarities).forEach(rarity => {
+                    rarityTotals[rarity] = 0;
+                });
 
                 allNodes.forEach(node => {
                     if (node.domain) {
-                        domainTotals[node.domain] = (domainTotals[node.domain] || 0) + 1;
+                        domainTotals[node.domain]++;
                     }
-                    const rarity = node.rarity || 'white';
-                    rarityTotals[rarity] = (rarityTotals[rarity] || 0) + 1;
+                    if (node.rarity) {
+                        rarityTotals[node.rarity]++;
+                    }
                 });
+
 
                 // Update total counts
                 document.getElementById('totalNodes').textContent = totalNodes;
@@ -2040,14 +2033,7 @@
 
                 // Count active nodes by domain and rarity
                 const domainCounts = {};
-                const rarityCounts = {
-                    gold: 0,
-                    orange: 0,
-                    purple: 0,
-                    blue: 0,
-                    green: 0,
-                    white: 0
-                };
+                const rarityCounts = {};
 
                 this.activeNodes.forEach(nodeId => {
                     const nodeData = this.findNodeData(nodeId);
@@ -2055,8 +2041,9 @@
                         if (nodeData.domain) {
                             domainCounts[nodeData.domain] = (domainCounts[nodeData.domain] || 0) + 1;
                         }
-                        const rarity = nodeData.rarity || 'white';
-                        rarityCounts[rarity]++;
+                        if (nodeData.rarity) {
+                            rarityCounts[nodeData.rarity] = (rarityCounts[nodeData.rarity] || 0) + 1;
+                        }
                     }
                 });
 
@@ -2082,19 +2069,15 @@
                 // Update domain gauge bars
                 const legend = document.getElementById('legend');
                 legend.innerHTML = '<div class="legend-title">Domains:</div>';
-                Object.entries(this.data.domains).forEach(([domain, color]) => {
+                Object.entries(this.data.domains).forEach(([domain, domainInfo]) => {
                     const active = domainCounts[domain] || 0;
-                    const total = domainTotals[domain];
+                    const total = domainTotals[domain] || 0;
                     const percentage = total > 0 ? (active / total) * 100 : 0;
                     this.createGaugeBar(
                         legend,
-                        domain === 'learn' ? '학습' :
-                        domain === 'computer-science' ? 'CS' :
-                        domain === 'web-development' ? 'Web' :
-                        domain === 'math' ? 'Math' :
-                        domain === 'machine-learning' ? 'ML' : domain,
+                        domainInfo.label,
                         percentage,
-                        color,
+                        domainInfo.color,
                         active,
                         total
                     );
@@ -2103,20 +2086,18 @@
                 // Update rarity gauge bars
                 const rarityLegend = document.getElementById('rarity-legend');
                 rarityLegend.innerHTML = '<div class="legend-title">Rarities:</div>';
-                const rarityLabels = {
-                    'gold': '초월',
-                    'orange': '전설',
-                    'purple': '영웅',
-                    'blue': '희귀',
-                    'green': '일반',
-                    'white': '기본'
-                };
-                Object.entries(rarityTotals).forEach(([rarity, total]) => {
+                Object.entries(this.data.rarities).forEach(([rarity, rarityInfo]) => {
                     const active = rarityCounts[rarity] || 0;
+                    const total = rarityTotals[rarity] || 0;
                     const percentage = total > 0 ? (active / total) * 100 : 0;
-                    const color = getComputedStyle(document.documentElement)
-                        .getPropertyValue(`--rarity-${rarity}`).trim();
-                    this.createGaugeBar(rarityLegend, rarityLabels[rarity], percentage, color, active, total);
+                    this.createGaugeBar(
+                        rarityLegend,
+                        rarityInfo.label,
+                        percentage,
+                        rarityInfo.color,
+                        active,
+                        total
+                    );
                 });
 
                 // Update circular gauges style
@@ -2148,6 +2129,7 @@
                     );
                 }
 
+                // Update collections
                 const collectionsContainer = document.getElementById('collectionsContainer');
                 collectionsContainer.innerHTML = '';
 
@@ -2157,13 +2139,12 @@
                     collectionGauge.className = 'circular-gauge';
 
                     // Get domain color for the collection
-                    const domainColor = this.data.domains[collection.domain] || '#4A90E2';
+                    const domainColor = this.data.domains[collection.domain]?.color || '#4A90E2';
 
                     // Calculate collection progress
                     const totalNodes = collection.nodes.length;
                     const activeNodes = collection.nodes.filter(nodeTitle => {
                         const node = this.findNodeByTitle(nodeTitle);
-                        // Convert node.id to number since activeNodes stores numeric IDs
                         return node && this.activeNodes.has(parseInt(node.id));
                     }).length;
                     const percentage = totalNodes > 0 ? (activeNodes / totalNodes) * 100 : 0;
@@ -2186,13 +2167,13 @@
                         details.className = 'collection-details';
                         
                         collection.nodes.forEach(nodeId => {
-                            const node = this.findNodeByTitle(nodeId); 
+                            const node = this.findNodeByTitle(nodeId);
                             if (node) {
                                 const item = document.createElement('div');
                                 item.className = 'collection-item';
                                 const isActive = this.activeNodes.has(parseInt(node.id));
                                 item.innerHTML = `
-                                    <span class="status-icon" style="color: ${isActive ? '#00ff00' : '#ff0000'}">${isActive ? '✓' : '×'}</span>
+                                    <span class="status-icon" data-active="${isActive}">${isActive ? '✓' : '×'}</span>
                                     <span class="node-title">${node.title}</span>
                                 `;
                                 details.appendChild(item);

@@ -1,42 +1,50 @@
 {
     "domains": {
-        "learn": "#4A90E2",
-        "computer-science": "#F5A623",
-        "web-development": "#7ED321",
-        "math": "#BD10E0",
-        "machine-learning": "#FF5733"
-    },
-    "domainLabels": {
-        "learn": "학습",
-        "computer-science": "CS",
-        "web-development": "Web",
-        "math": "Math",
-        "machine-learning": "ML"
+        "learn": {
+            "label": "학습",
+            "color": "#4A90E2"
+        },
+        "computer-science": {
+            "label": "CS",
+            "color": "#F5A623"
+        },
+        "web-development": {
+            "label": "Web",
+            "color": "#7ED321"
+        },
+        "math": {
+            "label": "Math",
+            "color": "#BD10E0"
+        },
+        "machine-learning": {
+            "label": "ML",
+            "color": "#FF5733"
+        }
     },
     "rarities": {
-        "white": {
-            "label": "기본",
-            "color": "#FFFFFF"
-        },
-        "green": {
-            "label": "일반",
-            "color": "#008000"
-        },
-        "blue": {
-            "label": "희귀",
-            "color": "#0000FF"
-        },
-        "purple": {
-            "label": "영웅",
-            "color": "#800080"
+        "gold": {
+            "label": "초월",
+            "color": "#FFD700"
         },
         "orange": {
             "label": "전설",
             "color": "#FFA500"
         },
-        "gold": {
-            "label": "초월",
-            "color": "#FFD700"
+        "purple": {
+            "label": "영웅",
+            "color": "#800080"
+        },
+        "blue": {
+            "label": "희귀",
+            "color": "#0000FF"
+        },
+        "green": {
+            "label": "일반",
+            "color": "#008000"
+        },
+        "white": {
+            "label": "기본",
+            "color": "#FFFFFF"
         }
     },
     "collections": {
