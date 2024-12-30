@@ -52,26 +52,28 @@
         }
     },
     "nodes": {
-        "fundamental": {
-            "id": 1,
-            "type": "fundamental",
-            "domain": "learn",
-            "position": {"x": 0, "y": 0},
-            "title": "Core Skills",
-            "explored": true,
-            "connections": ["Algorithms check linebreak"],
-            "rarity": "gold"
-        },
+        "fundamental": [
+            {
+                "id": 1,
+                "type": "fundamental",
+                "domain": "learn",
+                "rarity": "gold",
+                "position": {"x": 0, "y": 0},
+                "title": "Core Skills",
+                "explored": true,
+                "connections": ["Algorithms check linebreak"]
+            }
+        ],
         "major": [
             {
                 "id": 2,
                 "type": "major",
                 "domain": "computer-science",
+                "rarity": "purple",
                 "position": {"x": 200, "y": 0},
                 "title": "Algorithms check linebreak",
                 "explored": true,
-                "connections": ["Sorting Algorithms"],
-                "rarity": "purple"
+                "connections": ["Sorting Algorithms"]
             }
         ],
         "minor": [
@@ -79,11 +81,11 @@
                 "id": 3,
                 "type": "minor",
                 "domain": "computer-science",
+                "rarity": "blue",
                 "position": {"x": 350, "y": 0},
                 "title": "Sorting Algorithms",
                 "explored": false,
-                "connections": [],
-                "rarity": "blue"
+                "connections": []
             }
         ],
         "keystone": [
@@ -91,11 +93,11 @@
                 "id": 4,
                 "type": "keystone",
                 "domain": "computer-science",
+                "rarity": "blue",
                 "position": {"x": 150, "y": 150},
                 "title": "System Design",
                 "explored": false,
-                "connections": [],
-                "rarity": "blue"
+                "connections": []
             }
         ], 
         "project": [
@@ -103,11 +105,11 @@
                 "id": 5,
                 "type": "project",
                 "domain": "web-development",
+                "rarity": "orange",
                 "position": {"x": 0, "y": 150},
                 "title": "skill tree",
                 "explored": true,
-                "connections": [],
-                "rarity": "orange"
+                "connections": []
             }
         ]
     }
