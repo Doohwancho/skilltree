@@ -926,7 +926,16 @@
 
                 // Add event listeners after appending to DOM
                 document.addEventListener('keydown', this.handleEscKey);
-                document.getElementById('createNodeBtn').addEventListener('click', createNewNodeHandler);
+                const createBtn = document.getElementById('createNodeBtn');
+                // Add Enter key handler to create button
+                const dialogForm = dialog.querySelector('.dialog-content');
+                dialogForm.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        createBtn.click();
+                    }
+                });
+                createBtn.addEventListener('click', createNewNodeHandler);
                 document.getElementById('cancelNodeBtn').addEventListener('click', cancelCreationHandler);
                 document.addEventListener('keydown', this.handleEscKey);
             }
