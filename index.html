@@ -664,6 +664,9 @@
                 this.initialMousePos = null;  // Track initial mouse position
                 this.connectStartTimeout = null;  // Track timeout ID
 
+                // track node to delete
+                this.selectedNode = null;
+                this.edges = new Map(); // edge state management,  Map<string, {source: number, target: number}>
 
                 this.init();
             }
@@ -1087,6 +1090,70 @@
                 container.appendChild(textWrapper);
             }
 
+            deleteNode(node) {
+                const nodeId = parseInt(node.id);
+                const nodeData = this.findNodeData(nodeId);
+                if (!nodeData) return;
+
+                // Remove from activeNodes if it was active
+                this.activeNodes.delete(nodeId);
+
+                // Remove all edges connected to this node using edge state
+                Array.from(this.edges.entries()).forEach(([edgeId, edge]) => {
+                    if (edge.sourceId === nodeId || edge.targetId === nodeId) {
+                        // Remove edge element from DOM
+                        edge.element.remove();
+                        // Remove from active edges
+                        this.activeEdges.delete(edgeId);
+                        // Remove from edge state
+                        this.edges.delete(edgeId);
+
+                        // Update connections in other nodes
+                        if (edge.sourceId === nodeId) {
+                            // This node is the source, update the target node
+                            const targetNode = this.findNodeData(edge.targetId);
+                            if (targetNode) {
+                                // Remove connection from target node if it exists
+                                targetNode.connections = targetNode.connections || [];
+                                targetNode.connections = targetNode.connections.filter(title => 
+                                    title !== nodeData.title
+                                );
+                            }
+                        } else {
+                            // This node is the target, update the source node
+                            const sourceNode = this.findNodeData(edge.sourceId);
+                            if (sourceNode) {
+                                // Remove connection from source node if it exists
+                                sourceNode.connections = sourceNode.connections || [];
+                                sourceNode.connections = sourceNode.connections.filter(title => 
+                                    title !== nodeData.title
+                                );
+                            }
+                        }
+                    }
+                });
+
+                // Remove node from collections
+                if (this.data.collections) {
+                    Object.values(this.data.collections).forEach(collection => {
+                        collection.nodes = collection.nodes.filter(title => title !== nodeData.title);
+                    });
+                }
+
+                // Remove node from data
+                const nodeType = nodeData.type;
+                if (Array.isArray(this.data.nodes[nodeType])) {
+                    this.data.nodes[nodeType] = this.data.nodes[nodeType].filter(n => n.id !== nodeId);
+                }
+
+                // Remove node element from DOM
+                node.remove();
+                // Clear selection
+                this.selectedNode = null;
+                // Update stats
+                this.updateStats();
+            }
+
             createEdges() {
                 // Get all nodes in a flat array
                 const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
@@ -1103,6 +1170,16 @@
                                 edgeElement.dataset.source = node.id;
                                 edgeElement.dataset.target = targetNode.id;
                                 this.container.appendChild(edgeElement);
+
+                                // Store edge in edge state management
+                                const edgeId = `${node.id}-${targetNode.id}`;
+                                this.edges.set(edgeId, {
+                                    sourceId: node.id,
+                                    targetId: targetNode.id,
+                                    sourceTitle: node.title,
+                                    targetTitle: targetNode.title,
+                                    element: edgeElement
+                                });
 
                                 if (node.explored && targetNode.explored) {
                                     this.activeEdges.add(`${node.id}-${targetNode.id}`);
@@ -1178,6 +1255,38 @@
                 });
             }
 
+            removeNodeEdges(nodeId, nodeData) {
+                // Remove outgoing edges
+                if (nodeData.connections) {
+                    nodeData.connections.forEach(targetTitle => {
+                        const targetNode = this.findNodeByTitle(targetTitle);
+                        if (targetNode) {
+                            // Remove edge from DOM
+                            const edgeElement = Array.from(this.container.getElementsByClassName('edge'))
+                                .find(el =>
+                                    (el.dataset.source === String(nodeId) && el.dataset.target === String(targetNode.id)) ||
+                                    (el.dataset.source === String(targetNode.id) && el.dataset.target === String(nodeId))
+                                );
+                            if (edgeElement) {
+                                edgeElement.remove();
+                                this.activeEdges.delete(`${nodeId}-${targetNode.id}`);
+                                this.activeEdges.delete(`${targetNode.id}-${nodeId}`);
+                            }
+                        }
+                    });
+                }
+
+                // Remove incoming edges
+                Object.values(this.data.nodes)
+                    .flat()
+                    .filter(node => node && node.connections)
+                    .forEach(node => {
+                        if (node.connections.includes(nodeData.title)) {
+                            node.connections = node.connections.filter(title => title !== nodeData.title);
+                        }
+                    });
+            }
+
             startConnection(node, event) {
                 // Don't create new edge if already connecting
                 if (this.isConnecting || this.previewEdge) {
@@ -1249,10 +1358,12 @@
                 if (!sourceData.connections) {
                     sourceData.connections = [];
                 }
-                if (!sourceData.connections.includes(targetData.title)) {
+                const edgeId = `${sourceData.id}-${targetData.id}`;
+                if (!this.edges.has(edgeId)) {
+                    // Add to node's connections (keep for backward compatibility)
                     sourceData.connections.push(targetData.title);
 
-                    // Create permanent edge
+                    // Create edge element
                     const edgeElement = document.createElement('div');
                     edgeElement.className = 'edge';
                     this.updateEdgePosition(edgeElement, sourceData.id, targetData.id);
@@ -1260,8 +1371,18 @@
                     edgeElement.dataset.target = targetData.id;
                     this.container.appendChild(edgeElement);
 
+                    // Store in edge state management
+                    this.edges.set(edgeId, {
+                        sourceId: sourceData.id,
+                        targetId: targetData.id,
+                        sourceTitle: sourceData.title,
+                        targetTitle: targetData.title,
+                        element: edgeElement
+                    });
+
+                    // Handle active state
                     if (sourceData.explored && targetData.explored) {
-                        this.activeEdges.add(`${sourceData.id}-${targetData.id}`);
+                        this.activeEdges.add(edgeId);
                         edgeElement.classList.add('active');
                     }
 
@@ -1310,7 +1431,10 @@
                     const node = e.target.closest('.node');
                     // Only toggle if we haven't been dragging
                     if (node && !isDragging) {
+                        this.selectedNode = node;  // Track selected node
                         this.toggleNode(node);
+                    } else {
+                        this.selectedNode = null;  // Clear selection if clicking elsewhere
                     }
                     // Reset dragging state
                     isDragging = false;
@@ -1536,6 +1660,10 @@
                 window.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && this.isConnecting) {
                         this.cancelConnection();
+                    }
+                    // Delete selected node on backspace/delete
+                    if ((e.key === 'Backspace' || e.key === 'Delete') && this.selectedNode) {
+                        this.deleteNode(this.selectedNode);
                     }
                 });
             }
