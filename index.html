@@ -58,6 +58,12 @@
             overflow: visible;
             background-clip: padding-box;
             z-index: 1;
+
+            /* double clicking won't highlight text inside node */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         /* Star shape with outline */
