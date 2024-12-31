@@ -1,0 +1,996 @@
+{
+    "domains": {
+        "learn": {
+            "label": "학습",
+            "color": "#4A90E2"
+        },
+        "computer-science": {
+            "label": "CS",
+            "color": "#7ED321"
+        },
+        "web-development": {
+            "label": "Web",
+            "color": "#F5A623"
+        },
+        "math": {
+            "label": "Math",
+            "color": "#BD10E0"
+        },
+        "machine-learning": {
+            "label": "ML",
+            "color": "#FF5733"
+        }
+    },
+    "rarities": {
+        "gold": {
+            "label": "초월",
+            "color": "#FFD700"
+        },
+        "orange": {
+            "label": "전설",
+            "color": "#FFA500"
+        },
+        "purple": {
+            "label": "영웅",
+            "color": "#800080"
+        },
+        "blue": {
+            "label": "희귀",
+            "color": "#0000FF"
+        },
+        "green": {
+            "label": "일반",
+            "color": "#008000"
+        },
+        "white": {
+            "label": "기본",
+            "color": "#FFFFFF"
+        }
+    },
+    "collections": {
+        "frontend1": {
+            "title": "Frontend1",
+            "domain": "web-development",
+            "nodes": [
+                "html",
+                "css",
+                "javascript",
+                "react",
+                "bbs"
+            ]
+        },
+        "frontend2": {
+            "title": "Frontend2",
+            "domain": "web-development",
+            "nodes": [
+                "typescript",
+                "ui",
+                "ux"
+            ]
+        },
+        "backend1": {
+            "title": "Backend1",
+            "domain": "web-development",
+            "nodes": [
+                "java",
+                "spring",
+                "mysql",
+                "sql",
+                "mybatis",
+                "aws",
+                "unit test",
+                "bbs"
+            ]
+        },
+        "backend2": {
+            "title": "Backend2",
+            "domain": "web-development",
+            "nodes": [
+                "spring security",
+                "spring batch",
+                "spring actuator",
+                "jpa",
+                "entity modeling",
+                "erd modeling",
+                "sql optimization",
+                "prometheus",
+                "grafana",
+                "k6",
+                "nosql",
+                "socket",
+                "IOCP",
+                "redis",
+                "authentication system",
+                "payment system",
+                "chatting server",
+                "monitoring system",
+                "logging system"
+            ]
+        },
+        "backend3": {
+            "title": "Backend3",
+            "domain": "web-development",
+            "nodes": [
+                "spring cloud",
+                "spring webflux",
+                "kafka",
+                "memcached"
+            ]
+        },
+        "devops1": {
+            "title": "DevOps1",
+            "domain": "web-development",
+            "nodes": [
+                "aws",
+                "terraform",
+                "ansible",
+                "prometheus",
+                "grafana",
+                "k6",
+                "docker"
+            ]
+        },
+        "devops2": {
+            "title": "DevOps2",
+            "domain": "web-development",
+            "nodes": [
+                "kubernetes",
+                "msa"
+            ]
+        }
+    },
+    "nodes": {
+        "fundamental": [
+            {
+                "id": 1,
+                "type": "fundamental",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": 576,
+                    "y": 371
+                },
+                "title": "Mysql",
+                "explored": true,
+                "connections": []
+            },
+            {
+                "id": 2,
+                "type": "fundamental",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 125,
+                    "y": 550
+                },
+                "title": "Java",
+                "explored": true,
+                "connections": [
+                    "Spring",
+                    "testing"
+                ]
+            },
+            {
+                "id": 3,
+                "type": "fundamental",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 974,
+                    "y": 818
+                },
+                "title": "Linux",
+                "explored": false,
+                "connections": [
+                    "aws"
+                ]
+            },
+            {
+                "id": 4,
+                "type": "fundamental",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": 1492,
+                    "y": 151
+                },
+                "title": "Scoket",
+                "explored": false,
+                "connections": [
+                    "Chatting Server"
+                ]
+            }
+        ],
+        "major": [
+            {
+                "id": 5,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 144,
+                    "y": 348
+                },
+                "title": "Spring",
+                "explored": true,
+                "connections": []
+            },
+            {
+                "id": 6,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 973,
+                    "y": 492
+                },
+                "title": "aws",
+                "explored": true,
+                "connections": []
+            },
+            {
+                "id": 7,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 797,
+                    "y": 382
+                },
+                "title": "Redis",
+                "explored": true,
+                "connections": []
+            },
+            {
+                "id": 8,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 1368,
+                    "y": 253
+                },
+                "title": "MSA",
+                "explored": false,
+                "connections": []
+            },
+            {
+                "id": 9,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 1371,
+                    "y": 387
+                },
+                "title": "Kubernetes",
+                "explored": false,
+                "connections": [
+                    "MSA"
+                ]
+            },
+            {
+                "id": 10,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": -369,
+                    "y": 372
+                },
+                "title": "javascript",
+                "explored": true,
+                "connections": [
+                    "react"
+                ]
+            },
+            {
+                "id": 11,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": -595,
+                    "y": 341
+                },
+                "title": "UI",
+                "explored": false,
+                "connections": [
+                    "javascript"
+                ]
+            },
+            {
+                "id": 12,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": -595,
+                    "y": 472
+                },
+                "title": "UX",
+                "explored": false,
+                "connections": [
+                    "javascript"
+                ]
+            },
+            {
+                "id": 13,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": -106,
+                    "y": 498
+                },
+                "title": "testing",
+                "explored": true,
+                "connections": []
+            },
+            {
+                "id": 14,
+                "type": "major",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 1746,
+                    "y": 141
+                },
+                "title": "kafka",
+                "explored": false,
+                "connections": [
+                    "Recommendation System"
+                ]
+            }
+        ],
+        "minor": [
+            {
+                "id": 15,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 179,
+                    "y": 203
+                },
+                "title": "spring security",
+                "explored": true,
+                "connections": [
+                    "Spring",
+                    "Authentication System"
+                ]
+            },
+            {
+                "id": 16,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 54,
+                    "y": 245
+                },
+                "title": "spring batch",
+                "explored": true,
+                "connections": [
+                    "Spring"
+                ]
+            },
+            {
+                "id": 17,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 295,
+                    "y": 267
+                },
+                "title": "spring actuator",
+                "explored": true,
+                "connections": [
+                    "Spring",
+                    "prometheus"
+                ]
+            },
+            {
+                "id": 18,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 4,
+                    "y": 350
+                },
+                "title": "spring cloud",
+                "explored": false,
+                "connections": [
+                    "Spring"
+                ]
+            },
+            {
+                "id": 19,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 55,
+                    "y": 448
+                },
+                "title": "spring webflux",
+                "explored": false,
+                "connections": [
+                    "Spring"
+                ]
+            },
+            {
+                "id": 20,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 408,
+                    "y": 360
+                },
+                "title": "JPA",
+                "explored": true,
+                "connections": [
+                    "Spring",
+                    "Mysql"
+                ]
+            },
+            {
+                "id": 21,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 407,
+                    "y": 469
+                },
+                "title": "Mybatis",
+                "explored": true,
+                "connections": [
+                    "Spring",
+                    "Mysql"
+                ]
+            },
+            {
+                "id": 22,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 1152,
+                    "y": 491
+                },
+                "title": "terraform",
+                "explored": true,
+                "connections": [
+                    "aws"
+                ]
+            },
+            {
+                "id": 23,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 1123,
+                    "y": 618
+                },
+                "title": "packer",
+                "explored": true,
+                "connections": [
+                    "aws"
+                ]
+            },
+            {
+                "id": 24,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 390,
+                    "y": 84
+                },
+                "title": "prometheus",
+                "explored": true,
+                "connections": [
+                    "monitoring system"
+                ]
+            },
+            {
+                "id": 25,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 427,
+                    "y": 192
+                },
+                "title": "grafana",
+                "explored": true,
+                "connections": [
+                    "prometheus"
+                ]
+            },
+            {
+                "id": 26,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 518,
+                    "y": 559
+                },
+                "title": "ERD modeling",
+                "explored": true,
+                "connections": [
+                    "Mysql"
+                ]
+            },
+            {
+                "id": 27,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 498,
+                    "y": 289
+                },
+                "title": "entity modeling",
+                "explored": true,
+                "connections": [
+                    "JPA"
+                ]
+            },
+            {
+                "id": 28,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 634,
+                    "y": 555
+                },
+                "title": "SQL",
+                "explored": true,
+                "connections": [
+                    "Mysql"
+                ]
+            },
+            {
+                "id": 29,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 606,
+                    "y": 690
+                },
+                "title": "SQL optimization",
+                "explored": true,
+                "connections": [
+                    "SQL"
+                ]
+            },
+            {
+                "id": 30,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 145,
+                    "y": 855
+                },
+                "title": "Git",
+                "explored": true,
+                "connections": [
+                    "Java"
+                ]
+            },
+            {
+                "id": 31,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 1375,
+                    "y": 543
+                },
+                "title": "Docker",
+                "explored": false,
+                "connections": [
+                    "Kubernetes"
+                ]
+            },
+            {
+                "id": 32,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": -356,
+                    "y": 614
+                },
+                "title": "html",
+                "explored": true,
+                "connections": [
+                    "css"
+                ]
+            },
+            {
+                "id": 33,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": -364,
+                    "y": 495
+                },
+                "title": "css",
+                "explored": true,
+                "connections": [
+                    "javascript"
+                ]
+            },
+            {
+                "id": 34,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": -363,
+                    "y": 264
+                },
+                "title": "react",
+                "explored": true,
+                "connections": [
+                    "BBS"
+                ]
+            },
+            {
+                "id": 35,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": -214,
+                    "y": 489
+                },
+                "title": "unit test",
+                "explored": true,
+                "connections": [
+                    "testing"
+                ]
+            },
+            {
+                "id": 36,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": -178,
+                    "y": 597
+                },
+                "title": "PBT",
+                "explored": true,
+                "connections": [
+                    "testing"
+                ]
+            },
+            {
+                "id": 37,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": 618,
+                    "y": 258
+                },
+                "title": "transaction",
+                "explored": false,
+                "connections": [
+                    "Mysql",
+                    "Payment System"
+                ]
+            },
+            {
+                "id": 38,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": -587,
+                    "y": 587
+                },
+                "title": "typescript",
+                "explored": false,
+                "connections": [
+                    "javascript"
+                ]
+            },
+            {
+                "id": 39,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 810,
+                    "y": 505
+                },
+                "title": "memcached",
+                "explored": false,
+                "connections": []
+            },
+            {
+                "id": 40,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 513,
+                    "y": 132
+                },
+                "title": "k6",
+                "explored": true,
+                "connections": [
+                    "monitoring system"
+                ]
+            },
+            {
+                "id": 41,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 1855,
+                    "y": 146
+                },
+                "title": "AB testing",
+                "explored": false,
+                "connections": [
+                    "Recommendation System"
+                ]
+            },
+            {
+                "id": 42,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 1413,
+                    "y": 104
+                },
+                "title": "mongodb",
+                "explored": false,
+                "connections": [
+                    "Chatting Server"
+                ]
+            },
+            {
+                "id": 43,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 1627,
+                    "y": 103
+                },
+                "title": "IOCP",
+                "explored": false,
+                "connections": [
+                    "Chatting Server"
+                ]
+            },
+            {
+                "id": 44,
+                "type": "minor",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 895,
+                    "y": 639
+                },
+                "title": "ansible",
+                "explored": false,
+                "connections": [
+                    "aws"
+                ]
+            }
+        ],
+        "keystone": [],
+        "project": [
+            {
+                "id": 45,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": 631,
+                    "y": -353
+                },
+                "title": "ecommerce",
+                "explored": false,
+                "connections": []
+            },
+            {
+                "id": 46,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": -141,
+                    "y": -16
+                },
+                "title": "BBS",
+                "explored": true,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 47,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 127,
+                    "y": -18
+                },
+                "title": "Authentication System",
+                "explored": true,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 48,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 286,
+                    "y": -14
+                },
+                "title": "Admin Page",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 49,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": 900,
+                    "y": -8
+                },
+                "title": "Payment System",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 50,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 1474,
+                    "y": -21
+                },
+                "title": "Chatting Server",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 51,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "purple",
+                "position": {
+                    "x": 1781,
+                    "y": -8
+                },
+                "title": "Recommendation System",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 52,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 699,
+                    "y": -6
+                },
+                "title": "logging system",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 53,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "blue",
+                "position": {
+                    "x": 499,
+                    "y": -16
+                },
+                "title": "monitoring system",
+                "explored": true,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 54,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "green",
+                "position": {
+                    "x": 70,
+                    "y": 1043
+                },
+                "title": "image processing",
+                "explored": false,
+                "connections": []
+            },
+            {
+                "id": 55,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 1242,
+                    "y": -11
+                },
+                "title": "coupon system",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 56,
+                "type": "project",
+                "domain": "web-development",
+                "rarity": "white",
+                "position": {
+                    "x": 1078,
+                    "y": -15
+                },
+                "title": "order system",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            },
+            {
+                "id": 57,
+                "type": "project",
+                "domain": "machine-learning",
+                "rarity": "green",
+                "position": {
+                    "x": 1997,
+                    "y": -2
+                },
+                "title": "image to 3d",
+                "explored": false,
+                "connections": [
+                    "ecommerce"
+                ]
+            }
+        ]
+    }
+}

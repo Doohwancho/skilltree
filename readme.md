@@ -4,6 +4,10 @@
 
 skill tree in html + js + json
 
+### ex) web developer
+
+![](images/2024-12-31-20-32-33.png)
+
 
 # B. features
 
