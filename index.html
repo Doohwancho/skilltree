@@ -602,11 +602,15 @@
             <button id="zoomIn">+</button>
             <button id="zoomOut">-</button>
             <button id="fitScreen">Fit Screen</button>
+            <button id="saveNodes">Save As</button>
+            <input type="file" id="loadNodes" accept=".json" style="display: none;">
+            <!-- <button id="updateNodes">Update</button> -->
+            <button id="loadButton">Load</button>
         </div>
     </div>
     <script>
         class SkillTree {
-            constructor(containerId, data) {
+            constructor(containerId, data, filePath) {
                 this.container = document.getElementById(containerId);
                 this.data = data;
                 this.scale = 1;
@@ -654,6 +658,11 @@
                 // track node to delete
                 this.selectedNode = null;
                 this.edges = new Map(); // edge state management,  Map<string, {source: number, target: number}>
+
+                // set filepath for save & load
+                this.currentFilePath = filePath || null;
+                console.log('Initial file path:', this.currentFilePath); // Debug log
+                this.defaultFileName = 'skilltree.json';
 
                 this.init();
             }
@@ -1620,6 +1629,7 @@
                     }
                 });
 
+                // feat6: long click to connect nodes with edge
                 window.addEventListener('mouseup', (e) => {
                     // Handle edge connection completion
                     if (this.isConnecting) {
@@ -1644,7 +1654,7 @@
                     isNodeDragging = false;
                 });
 
-                // Add ESC key handler for canceling edge connection
+                // feat7: Add ESC key handler for canceling edge connection
                 window.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && this.isConnecting) {
                         this.cancelConnection();
@@ -1652,6 +1662,25 @@
                     // Delete selected node on backspace/delete
                     if ((e.key === 'Backspace' || e.key === 'Delete') && this.selectedNode) {
                         this.deleteNode(this.selectedNode);
+                    }
+                });
+
+                //feat8: save and load 
+                document.getElementById('saveNodes').addEventListener('click', () => {
+                    this.saveToFile();
+                });
+
+                // document.getElementById('updateNodes').addEventListener('click', () => {
+                //     this.updateFile();
+                // });
+
+                document.getElementById('loadButton').addEventListener('click', () => {
+                    document.getElementById('loadNodes').click();
+                });
+
+                document.getElementById('loadNodes').addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.loadFromFile(e.target.files[0]);
                     }
                 });
             }
@@ -2195,14 +2224,155 @@
             //         grid.style.display = this.showGrid ? 'block' : 'none';
             //     }
             // }
+
+            prepareSaveData() {
+                const saveData = {
+                    domains: this.data.domains,
+                    rarities: this.data.rarities,
+                    collections: this.data.collections,
+                    nodes: {
+                        fundamental: [],
+                        major: [],
+                        minor: [],
+                        keystone: [],
+                        project: []
+                    }
+                };
+
+                // Gather all nodes and their current state
+                Object.entries(this.data.nodes).forEach(([type, nodes]) => {
+                    nodes.forEach(node => {
+                        if (node) {
+                            const nodeElement = document.getElementById(String(node.id));
+                            if (nodeElement) {
+                                // Create a copy of the node data with current position and state
+                                const nodeCopy = {
+                                    id: node.id,
+                                    type: node.type,
+                                    domain: node.domain,
+                                    rarity: node.rarity,
+                                    position: {
+                                        x: parseInt(nodeElement.style.left),
+                                        y: parseInt(nodeElement.style.top)
+                                    },
+                                    title: node.title,
+                                    explored: this.activeNodes.has(node.id),
+                                    connections: node.connections || []
+                                };
+                                saveData.nodes[type].push(nodeCopy);
+                            }
+                        }
+                    });
+                });
+
+                return saveData;
+            }
+
+            saveToFile() {
+                const saveData = this.prepareSaveData();
+                const blob = new Blob([JSON.stringify(saveData, null, 4)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.defaultFileName;
+        
+                // Update currentFilePath when saving
+                this.currentFilePath = this.defaultFileName;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            // warning!
+            // for security reason, overwriting file from javscript is not allowed.
+            // async updateFile() {
+            //     console.log('Current file path before update:', this.currentFilePath); // Debug log
+        
+            //     if (!this.currentFilePath) {
+            //         alert('No file is currently loaded. Please use Save As instead.');
+            //         return;
+            //     }
+
+            //     try {
+            //         const saveData = this.prepareSaveData();
+            //         const jsonString = JSON.stringify(saveData, null, 4);
+
+            //         console.log('Attempting to update file:', this.currentFilePath);
+                    
+            //         // Create a temporary download to update the file
+            //         const blob = new Blob([jsonString], { type: 'application/json' });
+            //         const url = URL.createObjectURL(blob);
+            //         const a = document.createElement('a');
+            //         a.href = url;
+            //         a.download = this.currentFilePath;
+            //         document.body.appendChild(a);
+            //         a.click();
+            //         document.body.removeChild(a);
+            //         URL.revokeObjectURL(url);
+                    
+            //         console.log('File updated successfully');
+            //         alert('File updated successfully');
+            //     } catch (error) {
+            //         console.error('Error updating file:', error);
+            //         alert('Error updating file. Please try again.');
+            //     }
+            // }
+
+            async loadFromFile(file) {
+                try {
+                    const text = await file.text();
+                    const newData = JSON.parse(text);
+                    
+                    // Validate the loaded data structure
+                    if (!newData.nodes || !newData.domains || !newData.rarities) {
+                        throw new Error('Invalid file format');
+                    }
+
+                    // Store the full path of the loaded file
+                    this.currentFilePath = file.name;
+                    console.log('File loaded, current path:', this.currentFilePath);
+
+                    // Clear existing nodes from DOM
+                    const existingNodes = this.container.querySelectorAll('.node');
+                    existingNodes.forEach(node => node.remove());
+
+                    // Clear existing edges from DOM
+                    const existingEdges = this.container.querySelectorAll('.edge');
+                    existingEdges.forEach(edge => edge.remove());
+
+                    // Reset state
+                    this.data = newData;
+                    this.activeNodes.clear();
+                    this.activeEdges.clear();
+                    this.edges.clear();
+
+                    // Reinitialize
+                    this.init();
+                    
+                    // Update stats
+                    this.updateStats();
+
+                    console.log('Current file path:', this.currentFilePath)
+                } catch (error) {
+                    console.error('Error loading file:', error);
+                    alert('Error loading file. Please ensure it is a valid skill tree JSON file.');
+                }
+            }
+
         }
 
+        // Initialize the skill tree
         let skillTree;
-
-        fetch('skill-tree.json')
+        fetch('./skill-tree.json')
             .then(response => response.json())
             .then(data => {
-                skillTree = new SkillTree('skillTree', data);
+                skillTree = new SkillTree('skillTree', data,'skill-tree.json');
+            })
+            .catch(error => {
+                console.error('Error loading initial file:', error);
+                alert('Error loading initial skill tree data.');
             });
     </script>
 </body>
