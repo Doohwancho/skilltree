@@ -239,7 +239,7 @@
         }
 
         .node-creation-dialog {
-            position: absolute;
+            position: fixed;
             background: rgba(30, 30, 30, 0.95);
             border: 1px solid #666;
             border-radius: 8px;
@@ -858,9 +858,11 @@
 
             startNodeCreation(e) {
                 const rect = this.container.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / this.scale - this.offset.x;
-                const y = (e.clientY - rect.top) / this.scale - this.offset.y;
-                
+
+
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
                 this.isCreatingNode = true;
                 this.newNodePosition = { x, y };
                 this.showNodeCreationDialog(x, y);
@@ -871,6 +873,7 @@
                 if (existingDialog) existingDialog.remove();
 
                 const dialog = document.createElement('div');
+                // Position dialog at mouse position in screen coordinates
                 dialog.className = 'node-creation-dialog';
                 dialog.style.left = `${x}px`;
                 dialog.style.top = `${y}px`;
