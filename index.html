@@ -662,7 +662,7 @@
                 // set filepath for save & load
                 this.currentFilePath = filePath || null;
                 console.log('Initial file path:', this.currentFilePath); // Debug log
-                this.defaultFileName = 'skilltree.json';
+                this.defaultFileName = 'skill-tree.json';
 
                 this.init();
             }
@@ -1835,7 +1835,7 @@
 
             findNodeByTitle(title) {
                 const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
-                return allNodes.find(node => node.title === title);
+                return allNodes.find(node => node.title.toLowerCase() === title.toLowerCase());
             }
 
             findNodeIdByTitle(title) {
@@ -2365,7 +2365,7 @@
 
         // Initialize the skill tree
         let skillTree;
-        fetch('./skill-tree.json')
+        fetch('./example/developer_roadmap.json')
             .then(response => response.json())
             .then(data => {
                 skillTree = new SkillTree('skillTree', data,'skill-tree.json');
