@@ -1670,6 +1670,15 @@
                     this.saveToFile();
                 });
 
+                // Add keyboard shortcut for save
+                document.addEventListener('keydown', (e) => {
+                    // Check for Command+S (Mac) or Control+S (Windows/Linux)
+                    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                        e.preventDefault(); // Prevent browser's default save dialog
+                        document.getElementById('saveNodes').click();
+                    }
+                });
+
                 // document.getElementById('updateNodes').addEventListener('click', () => {
                 //     this.updateFile();
                 // });
@@ -2365,7 +2374,7 @@
 
         // Initialize the skill tree
         let skillTree;
-        fetch('./example/developer_roadmap.json')
+        fetch('./skill-tree.json')
             .then(response => response.json())
             .then(data => {
                 skillTree = new SkillTree('skillTree', data,'skill-tree.json');
