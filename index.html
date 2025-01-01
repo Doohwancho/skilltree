@@ -1587,6 +1587,7 @@
                             e.preventDefault();
                             this.startMultiSelect(e);
                         }
+                        return;
                     }
 
                     // Background panning part1
@@ -1608,6 +1609,12 @@
                     const node = e.target.closest('.node');
 
                     if (node) {
+                        // Skip node selection logic if command/ctrl is pressed
+                        // (handled by window mousedown)
+                        if (e.metaKey || e.ctrlKey) {
+                            return;
+                        }
+                        
                         e.stopPropagation(); // Prevent background drag
 
                         // Store initial mouse position
@@ -1691,11 +1698,8 @@
                                 const nodeData = this.findNodeData(node.id);
 
                                 if (nodeData) {
-                                    console.log(nodeData)
                                     const newX = nodeData.position.x + dx;
                                     const newY = nodeData.position.y + dy;
-
-                                    console.log('newX: ',newX, 'newY: ',newY);
 
                                     // Update node position
                                     node.style.left = `${newX}px`;
