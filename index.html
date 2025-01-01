@@ -66,6 +66,20 @@
             -ms-user-select: none;
         }
 
+        /* Multi-select styles */
+        .selection-box {
+            position: absolute;
+            border: 2px solid #4A90E2;
+            background-color: rgba(74, 144, 226, 0.1);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .node.selected {
+            outline: 3px solid #4A90E2;
+            outline-offset: 2px;
+        }
+
         /* Star shape with outline */
         .node.fundamental {
             width: 110px;
@@ -657,10 +671,18 @@
                 this.selectedNode = null;
                 this.edges = new Map(); // edge state management,  Map<string, {source: number, target: number}>
 
+                // Add multi-select properties
+                this.selectedNodes = new Set(); // Store selected nodes
+                this.isMultiSelecting = false; // Track if user is multi-selecting
+                this.selectionBox = null; // Reference to selection box element
+                this.selectionStart = null; // Starting point of selection box
+
                 // set filepath for save & load
                 this.currentFilePath = filePath || null;
                 console.log('Initial file path:', this.currentFilePath); // Debug log
                 this.defaultFileName = 'skill-tree.json';
+
+
 
                 this.init();
             }
@@ -1152,6 +1174,83 @@
                 this.updateStats();
             }
 
+            startMultiSelect(e) {
+                if (!this.isMultiSelecting) {
+                    this.isMultiSelecting = true;
+                    const rect = this.container.getBoundingClientRect();
+                    this.selectionStart = {
+                        x: (e.clientX - rect.left) / this.scale,
+                        y: (e.clientY - rect.top) / this.scale
+                    };
+
+                    // Create selection box
+                    this.selectionBox = document.createElement('div');
+                    this.selectionBox.className = 'selection-box';
+                    this.selectionBox.style.left = `${this.selectionStart.x}px`;
+                    this.selectionBox.style.top = `${this.selectionStart.y}px`;
+                    this.container.appendChild(this.selectionBox);
+                    
+                    // Clear existing selections when starting new box
+                    this.selectedNodes.forEach(node => node.classList.remove('selected'));
+                    this.selectedNodes.clear();
+                }
+            }
+
+            updateMultiSelect(e) {
+                if (this.isMultiSelecting && this.selectionBox) {
+                    const rect = this.container.getBoundingClientRect();
+                    const currentX = (e.clientX - rect.left) / this.scale;
+                    const currentY = (e.clientY - rect.top) / this.scale;
+
+                    const left = Math.min(this.selectionStart.x, currentX);
+                    const top = Math.min(this.selectionStart.y, currentY);
+                    const width = Math.abs(currentX - this.selectionStart.x);
+                    const height = Math.abs(currentY - this.selectionStart.y);
+
+                    this.selectionBox.style.left = `${left}px`;
+                    this.selectionBox.style.top = `${top}px`;
+                    this.selectionBox.style.width = `${width}px`;
+                    this.selectionBox.style.height = `${height}px`;
+
+                    // Check which nodes are in the selection box
+                    const selectionRect = {
+                        left: left * this.scale + rect.left,
+                        top: top * this.scale + rect.top,
+                        right: (left + width) * this.scale + rect.left,
+                        bottom: (top + height) * this.scale + rect.top
+                    };
+
+                    const nodes = this.container.getElementsByClassName('node');
+                    Array.from(nodes).forEach(node => {
+                        const nodeRect = node.getBoundingClientRect();
+                        if (this.rectIntersects(selectionRect, nodeRect)) {
+                            node.classList.add('selected');
+                            this.selectedNodes.add(node);
+                        } else {
+                            node.classList.remove('selected');
+                            this.selectedNodes.delete(node);
+                        }
+                    });
+                }
+            }
+
+            endMultiSelect() {
+                if (this.isMultiSelecting) {
+                    this.isMultiSelecting = false;
+                    if (this.selectionBox) {
+                        this.selectionBox.remove();
+                        this.selectionBox = null;
+                    }
+                }
+            }
+
+            rectIntersects(rect1, rect2) {
+                return !(rect2.left > rect1.right || 
+                        rect2.right < rect1.left || 
+                        rect2.top > rect1.bottom ||
+                        rect2.bottom < rect1.top);
+            }
+
             createEdges() {
                 // Get all nodes in a flat array
                 const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
@@ -1448,17 +1547,61 @@
                 let isBackgroundDragging = false;
                 let startX, startY;
 
-                // Node dragging & connection handlers
+                //'mousedown'은 2파트로 나눈다.
+                // 1. this.container에 event listener를 붙이는 케이스
+                // 2. window에 event listener를 붙이는 케이스
+
+                //case1) window에 붙이는 경우
+                //먼저, window에 붙이는 이유는 ctrl, command key binding이 window에서 밖에 안붙기 때문.
+                //기능: command(ctrl) + 드래그 -> select multiple nodes 
+                window.addEventListener('mousedown', (e) => {
+                    const node = e.target.closest('.node');
+                    
+                    // If command/ctrl is pressed - handle multi-select
+                    if (e.metaKey || e.ctrlKey) {
+                        if (node) {
+                            // Toggle node selection
+                            if (node.classList.contains('selected')) {
+                                node.classList.remove('selected');
+                                this.selectedNodes.delete(node);
+                            } else {
+                                node.classList.add('selected');
+                                this.selectedNodes.add(node);
+                            }
+                        } else {
+                            // Start box selection if clicking background
+                            e.preventDefault();
+                            this.startMultiSelect(e);
+                        }
+                    }
+
+                    // Background panning part1
+                    // Only start background drag if not clicking a node
+                    if (!e.target.closest('.node')) {
+                        isBackgroundDragging = true;
+                        startX = e.clientX - this.offset.x;
+                        startY = e.clientY - this.offset.y;
+                    }
+                });
+
+
+                //case2) container에 붙이는 경우 
+                // 나머지 'mousedown' 관련 기능 모조리 넣는다.
+                // 1. node 드래그 (복수 가능)
+                // 2. 오래 누르면 화살표 나와서 노드 연결 가능
+                // 3. dragging background
                 this.container.addEventListener('mousedown', (e) => {
                     const node = e.target.closest('.node');
+
                     if (node) {
                         e.stopPropagation(); // Prevent background drag
 
                         // Store initial mouse position
                         this.initialMousePos = { x: e.clientX, y: e.clientY };
 
+                        //기능2. 오래 누르면 화살표 나와서 노드 연결 가능
                         // Start connection timer
-                        if (!this.isConnecting && !this.connectStartTimeout) {
+                        if (!this.isConnecting && !this.selectedNodes.size > 0 && !this.connectStartTimeout) {
                             this.connectStartTimeout = setTimeout(() => {
                                 // Only start connection if mouse hasn't moved significantly
                                 const dx = e.clientX - this.initialMousePos.x;
@@ -1474,8 +1617,9 @@
                             }, 500);
                         }
 
+                        //기능1. node 드래그를 위한 노드의 x,y 좌표 미리 저장해두기. 이 정보 기반으로, 'mousemove'에서 위치를다옮긴다. 
                         // Only start dragging if we're not connecting
-                        if (!this.isConnecting) {
+                        if (!this.isConnecting) { 
                             draggedNode = node;
                             isNodeDragging = true;
                             
@@ -1489,49 +1633,100 @@
                                 y: e.clientY
                             };
                         }
-                    }
-                });
+                    } else {
+                        //기능3. dragging background
 
-                // Background panning handlers
-                window.addEventListener('mousedown', (e) => {
-                    // Only start background drag if not clicking a node
-                    if (!e.target.closest('.node')) {
+                        // Background panning
                         isBackgroundDragging = true;
                         startX = e.clientX - this.offset.x;
                         startY = e.clientY - this.offset.y;
+                        
+                        // Clear selection when clicking background
+                        this.selectedNodes.forEach(n => n.classList.remove('selected'));
+                        this.selectedNodes.clear();
                     }
                 });
 
+
+
                 window.addEventListener('mousemove', (e) => {
-                    // Node dragging
+                    // Update selection box if we're in multi-select mode
+                    if (this.isMultiSelecting) {
+                        this.updateMultiSelect(e);
+                        return;
+                    }
+
+                    // Handle edge preview update
+                    if (this.isConnecting) {
+                        this.updatePreviewEdge(e);
+                    }
+
+                    // Node dragging (single or multiple)
                     if (isNodeDragging && draggedNode) {
                         e.preventDefault();
+                        isDragging = true;
                         
-                        // Calculate the movement delta
-                        const dx = (e.clientX - dragOffset.x) / this.scale;
-                        const dy = (e.clientY - dragOffset.y) / this.scale;
-                        
-                        // Calculate new position based on initial position plus delta
-                        const newX = initialNodePosition.x + dx;
-                        const newY = initialNodePosition.y + dy;
-                        
-                        // Update node position
-                        draggedNode.style.left = `${newX}px`;
-                        draggedNode.style.top = `${newY}px`;
+                        // If there are selected nodes, move all of them
+                        if (this.selectedNodes.size > 0) {
 
-                        // Update node data
-                        const nodeId = draggedNode.id;
-                        const nodeData = this.findNodeData(nodeId);
-                        if (nodeData) {
-                            nodeData.position.x = Math.round(newX);
-                            nodeData.position.y = Math.round(newY);
+                            // Calculate the movement delta
+                            const dx = (e.clientX - dragOffset.x) / this.scale;
+                            const dy = (e.clientY - dragOffset.y) / this.scale;
+
+                            this.selectedNodes.forEach(node => {
+                                const nodeData = this.findNodeData(node.id);
+
+                                if (nodeData) {
+                                    console.log(nodeData)
+                                    const newX = nodeData.position.x + dx;
+                                    const newY = nodeData.position.y + dy;
+
+                                    console.log('newX: ',newX, 'newY: ',newY);
+
+                                    // Update node position
+                                    node.style.left = `${newX}px`;
+                                    node.style.top = `${newY}px`;
+
+                                    // Update node data
+                                    nodeData.position.x = newX;
+                                    nodeData.position.y = newY;
+
+                                    // Update connected edges
+                                    this.updateConnectedEdges(node.id);
+                                }
+                            });
+                            
+                            // Update dragOffset for continuous movement
+                            dragOffset.x = e.clientX;
+                            dragOffset.y = e.clientY;
+                        } else {
+                            //drag single node 
+                            // Calculate the movement delta
+                            const dx = (e.clientX - dragOffset.x) / this.scale;
+                            const dy = (e.clientY - dragOffset.y) / this.scale;
+                            
+                            // Calculate new position based on initial position plus delta
+                            const newX = initialNodePosition.x + dx;
+                            const newY = initialNodePosition.y + dy;
+                            
+                            // Update node position
+                            draggedNode.style.left = `${newX}px`;
+                            draggedNode.style.top = `${newY}px`;
+
+                            // Update node data
+                            const nodeId = draggedNode.id;
+                            const nodeData = this.findNodeData(nodeId);
+                            if (nodeData) {
+                                nodeData.position.x = Math.round(newX);
+                                nodeData.position.y = Math.round(newY);
+                            }
+
+                            // Update connected edges
+                            this.updateConnectedEdges(nodeId);
                         }
-
-                        // Update connected edges
-                        this.updateConnectedEdges(nodeId);
                     }
                     
-                    // Background panning
+                    // Background panning part2
                     if (isBackgroundDragging && !isNodeDragging) {
                         this.offset.x = e.clientX - startX;
                         this.offset.y = e.clientY - startY;
@@ -1600,38 +1795,14 @@
                             }
                         }
                     }
-
-                    // Handle edge preview update
-                    if (this.isConnecting) {
-                        this.updatePreviewEdge(e);
-                    }
-                    // Only handle dragging if not connecting
-                    else if (isNodeDragging && draggedNode) {
-                        isDragging = true; // Set dragging flag when node is moved
-                        
-                        e.preventDefault();
-                        
-                        const dx = (e.clientX - dragOffset.x) / this.scale;
-                        const dy = (e.clientY - dragOffset.y) / this.scale;
-                        
-                        const newX = initialNodePosition.x + dx;
-                        const newY = initialNodePosition.y + dy;
-                        
-                        draggedNode.style.left = `${newX}px`;
-                        draggedNode.style.top = `${newY}px`;
-
-                        const nodeData = this.findNodeData(draggedNode.id);
-                        if (nodeData) {
-                            nodeData.position.x = Math.round(newX);
-                            nodeData.position.y = Math.round(newY);
-                        }
-
-                        this.updateConnectedEdges(draggedNode.id);
-                    }
                 });
 
                 // feat6: long click to connect nodes with edge
                 window.addEventListener('mouseup', (e) => {
+                    if (this.isMultiSelecting) {
+                        this.endMultiSelect();
+                    }
+
                     // Handle edge connection completion
                     if (this.isConnecting) {
                         const targetNode = e.target.closest('.node');
@@ -1653,10 +1824,20 @@
                     // Reset dragging state
                     draggedNode = null;
                     isNodeDragging = false;
+                    isBackgroundDragging = false;
                 });
 
                 // feat7: Add ESC key handler for canceling edge connection
                 window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        // Clear selection box if it exists
+                        if (this.isMultiSelecting) {
+                            this.endMultiSelect();
+                        }
+                        // Clear selected nodes
+                        this.selectedNodes.forEach(node => node.classList.remove('selected'));
+                        this.selectedNodes.clear();
+                    }
                     if (e.key === 'Escape' && this.isConnecting) {
                         this.cancelConnection();
                     }

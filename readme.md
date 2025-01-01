@@ -21,4 +21,5 @@ skill tree in html + js + json
 8. visualize count # of active nodes / total nodes (same for domain / rarity)
 9. visualize collection rates with bar/round gauge for domain / rarity
 10. collections (toggle to see which nodes belongs to it, which are completed, which are not)
+11. command(ctrl for window) + drag to select multiple nodes for drag
 
