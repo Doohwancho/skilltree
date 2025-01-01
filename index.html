@@ -382,6 +382,20 @@
             z-index: 1000;
         }
 
+        #controls button {
+            padding: 12px 20px; /* Bigger padding */
+            font-size: 16px; /* Bigger font */
+            border: none;
+            border-radius: 8px;
+            background: #ffffff;
+            color: rgb(0, 0, 0);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 44px; /* Minimum width for square buttons */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: large;
+        }
+
         #stats {
             position: fixed;
             top: 20px;
@@ -613,7 +627,7 @@
         <div id="controls">
             <button id="zoomIn">+</button>
             <button id="zoomOut">-</button>
-            <button id="fitScreen">Fit Screen</button>
+            <!-- <button id="fitScreen">Fit Screen</button> -->
             <button id="saveNodes">Save As</button>
             <input type="file" id="loadNodes" accept=".json" style="display: none;">
             <!-- <button id="updateNodes">Update</button> -->
@@ -1752,9 +1766,9 @@
                     this.updateTransform();
                 });
 
-                document.getElementById('fitScreen').addEventListener('click', () => {
-                    this.fitToScreen();
-                });
+                // document.getElementById('fitScreen').addEventListener('click', () => {
+                //     this.fitToScreen();
+                // });
 
                 // Mouse wheel zooming
                 this.container.addEventListener('wheel', (e) => {
