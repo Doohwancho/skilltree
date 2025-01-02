@@ -23,4 +23,4 @@ skill tree in html + js + json
 10. collections (toggle to see which nodes belongs to it, which are completed, which are not)
 11. command(ctrl for window) + drag to select multiple nodes for drag
 12. click an edge and backspace deletes the edge
-
+13. undo

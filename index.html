@@ -663,6 +663,47 @@
         </div>
     </div>
     <script>
+
+        class UndoStack {
+            constructor(maxSize = 30) {
+                this.stack = [];
+                this.maxSize = maxSize;
+            }
+
+            push(action) {
+                this.stack.push({
+                    type: action.type,
+                    data: action.data,
+                    timestamp: Date.now()
+                });
+
+                if (this.stack.length > this.maxSize) {
+                    this.stack.shift();
+                }
+            }
+
+            pop() {
+                return this.stack.pop();
+            }
+
+            peek() {
+                return this.stack[this.stack.length - 1];
+            }
+
+            clear() {
+                this.stack = [];
+            }
+
+            isEmpty() {
+                return this.stack.length === 0;
+            }
+
+            get size() {
+                return this.stack.length;
+            }
+        }
+
+
         class SkillTree {
             constructor(containerId, data, filePath) {
                 this.container = document.getElementById(containerId);
@@ -727,6 +768,9 @@
                 console.log('Initial file path:', this.currentFilePath); // Debug log
                 this.defaultFileName = 'skill-tree.json';
 
+                // create undo stack
+                this.undoStack = new UndoStack(30);  // Keep 30 actions in history
+                this.initialNodePositions = null; // Store initial positions when starting drag for undo positions 
 
 
                 this.init();
@@ -827,6 +871,129 @@
                 this.container.style.transform = `scale(${this.scale})
             translate(${this.offset.x}px, ${this.offset.y}px)`;
             }
+
+            undo() {
+                if (this.undoStack.isEmpty()) return;
+
+                const action = this.undoStack.pop();
+                
+                switch (action.type) {
+                    case 'deleteNode':
+                        this.undoNodeDeletion(action.data);
+                        break;
+                    case 'deleteNodes':
+                        action.data.forEach(nodeData => {
+                            this.undoNodeDeletion(nodeData);
+                        });
+                        break;
+                    case 'deleteEdge':
+                        this.undoEdgeDeletion(action.data);
+                        break;
+                    case 'moveNodes':
+                        this.undoNodeMovement(action.data);
+                        break;
+                }
+
+                this.updateStats();
+            }
+
+            undoNodeDeletion(nodeData) {
+                // Add node back to data structure
+                if (!Array.isArray(this.data.nodes[nodeData.type])) {
+                    this.data.nodes[nodeData.type] = [];
+                }
+                this.data.nodes[nodeData.type].push(nodeData);
+
+                // Recreate node in UI
+                this.createNode(nodeData);
+
+                // Restore outgoing connections
+                if (nodeData.connections) {
+                    nodeData.connections.forEach(targetTitle => {
+                        const targetNode = this.findNodeByTitle(targetTitle);
+                        if (targetNode) {
+                            this.createEdgeElement(nodeData.id, targetNode.id);
+                        }
+                    });
+                }
+
+                // Restore incoming connections
+                if (nodeData.incomingConnections) {
+                    nodeData.incomingConnections.forEach(connection => {
+                        const sourceNode = this.findNodeData(connection.sourceId);
+                        if (sourceNode) {
+                            // Add connection to source node if not already present
+                            if (!sourceNode.connections.includes(nodeData.title)) {
+                                sourceNode.connections.push(nodeData.title);
+                            }
+                            // Create edge element
+                            this.createEdgeElement(sourceNode.id, nodeData.id);
+                        }
+                    });
+                }
+
+                // Restore active state if it was active
+                if (nodeData.explored) {
+                    this.activeNodes.add(nodeData.id);
+                    const node = document.getElementById(nodeData.id);
+                    if (node) this.updateNodeDisplay(node, nodeData);
+                }
+            }
+
+            undoEdgeDeletion(edgeData) {
+                // Recreate edge in the DOM
+                const edgeElement = document.createElement('div');
+                edgeElement.className = 'edge';
+                this.updateEdgePosition(edgeElement, edgeData.sourceId, edgeData.targetId);
+                edgeElement.dataset.source = edgeData.sourceId;
+                edgeElement.dataset.target = edgeData.targetId;
+                this.container.appendChild(edgeElement);
+
+                // Restore edge in data structures
+                const sourceNode = this.findNodeData(edgeData.sourceId);
+                const targetNode = this.findNodeData(edgeData.targetId);
+                
+                if (sourceNode && targetNode) {
+                    if (!sourceNode.connections) sourceNode.connections = [];
+                    if (!sourceNode.connections.includes(targetNode.title)) {
+                        sourceNode.connections.push(targetNode.title);
+                    }
+
+                    // Restore edge in edges Map
+                    const edgeId = `${edgeData.sourceId}-${edgeData.targetId}`;
+                    this.edges.set(edgeId, {
+                        sourceId: edgeData.sourceId,
+                        targetId: edgeData.targetId,
+                        sourceTitle: sourceNode.title,
+                        targetTitle: targetNode.title,
+                        element: edgeElement
+                    });
+
+                    // Restore active state if both nodes are active
+                    if (sourceNode.explored && targetNode.explored) {
+                        this.activeEdges.add(edgeId);
+                        edgeElement.classList.add('active');
+                    }
+                }
+            }
+
+            undoNodeMovement(movements) {
+                movements.forEach(movement => {
+                    const node = document.getElementById(movement.nodeId);
+                    const nodeData = this.findNodeData(movement.nodeId);
+                    
+                    if (node && nodeData) {
+                        // Restore previous position
+                        node.style.left = `${movement.oldPosition.x}px`;
+                        node.style.top = `${movement.oldPosition.y}px`;
+                        nodeData.position = movement.oldPosition;
+                        
+                        // Update edges
+                        this.updateConnectedEdges(movement.nodeId);
+                    }
+                });
+            }
+
 
             createNodes() {
                 // Create nodes for each type
@@ -1154,6 +1321,34 @@
                 const nodeData = this.findNodeData(nodeId);
                 if (!nodeData) return;
 
+                // Find all incoming connections before deletion
+                const incomingConnections = [];
+                Object.values(this.data.nodes).flat().forEach(otherNode => {
+                    if (otherNode && otherNode.connections && otherNode.connections.includes(nodeData.title)) {
+                        incomingConnections.push({
+                            sourceId: otherNode.id,
+                            sourceTitle: otherNode.title
+                        });
+                    }
+                });
+
+                // Store node state before deletion
+                const nodeState = {
+                    ...nodeData,
+                    position: {
+                        x: parseInt(node.style.left),
+                        y: parseInt(node.style.top)
+                    },
+                    explored: this.activeNodes.has(nodeId),
+                    incomingConnections 
+                };
+
+                // Add to undo stack before deleting
+                this.undoStack.push({
+                    type: 'deleteNode',
+                    data: nodeState
+                });
+
                 // Remove from activeNodes if it was active
                 this.activeNodes.delete(nodeId);
 
@@ -1348,28 +1543,48 @@
                 const sourceId = this.selectedEdge.dataset.source;
                 const targetId = this.selectedEdge.dataset.target;
 
-                // Find the source and target nodes' data
-                const sourceData = this.findNodeData(sourceId);
-                const targetData = this.findNodeData(targetId);
+                const edgeId = `${sourceId}-${targetId}`;
+                const edge = this.edges.get(edgeId);
 
-                if (sourceData && targetData) {
-                    // Remove the connection from source node's data
-                    if (sourceData.connections) {
-                        sourceData.connections = sourceData.connections.filter(
-                            title => title !== targetData.title
-                        );
+                if (edge) {
+                    // Store edge state before deletion
+                    const edgeState = {
+                        sourceId: parseInt(sourceId),
+                        targetId: parseInt(targetId),
+                        active: this.activeEdges.has(edgeId)
+                    };
+
+                    // Add to undo stack before deleting
+                    this.undoStack.push({
+                        type: 'deleteEdge',
+                        data: edgeState
+                    });
+
+                    // Remove edge 
+
+                    // Find the source and target nodes' data
+                    const sourceData = this.findNodeData(sourceId);
+                    const targetData = this.findNodeData(targetId);
+
+                    if (sourceData && targetData) {
+                        // Remove the connection from source node's data
+                        if (sourceData.connections) {
+                            sourceData.connections = sourceData.connections.filter(
+                                title => title !== targetData.title
+                            );
+                        }
+
+                        // Remove edge from DOM
+                        this.selectedEdge.remove();
+
+                        // Remove edge from edges Map
+                        const edgeId = `${sourceId}-${targetId}`;
+                        this.edges.delete(edgeId);
+                        this.activeEdges.delete(edgeId);
+
+                        // Clear selected edge reference
+                        this.selectedEdge = null;
                     }
-
-                    // Remove edge from DOM
-                    this.selectedEdge.remove();
-
-                    // Remove edge from edges Map
-                    const edgeId = `${sourceId}-${targetId}`;
-                    this.edges.delete(edgeId);
-                    this.activeEdges.delete(edgeId);
-
-                    // Clear selected edge reference
-                    this.selectedEdge = null;
                 }
             }
 
@@ -1507,6 +1722,35 @@
                 // Disable node dragging
                 isNodeDragging = false;
                 draggedNode = null;
+            }
+
+            createEdgeElement(sourceId, targetId) {
+                const edgeElement = document.createElement('div');
+                edgeElement.className = 'edge';
+                this.updateEdgePosition(edgeElement, sourceId, targetId);
+                edgeElement.dataset.source = sourceId;
+                edgeElement.dataset.target = targetId;
+                this.container.appendChild(edgeElement);
+
+                // Store edge in edge state management
+                const edgeId = `${sourceId}-${targetId}`;
+                const sourceNode = this.findNodeData(sourceId);
+                const targetNode = this.findNodeData(targetId);
+
+                this.edges.set(edgeId, {
+                    sourceId: sourceId,
+                    targetId: targetId,
+                    sourceTitle: sourceNode.title,
+                    targetTitle: targetNode.title,
+                    element: edgeElement
+                });
+
+                if (sourceNode.explored && targetNode.explored) {
+                    this.activeEdges.add(edgeId);
+                    edgeElement.classList.add('active');
+                }
+                
+                return edgeElement;
             }
 
             updatePreviewEdge(e) {
@@ -1734,6 +1978,7 @@
                             draggedNode = node;
                             isNodeDragging = true;
                             
+                            //save single node's position for drag-to-move feature 
                             initialNodePosition = {
                                 x: this.findNodeData(node.id).position.x,
                                 y: this.findNodeData(node.id).position.y
@@ -1743,6 +1988,26 @@
                                 x: e.clientX,
                                 y: e.clientY
                             };
+
+                            //save single/multiple nodes position for undo purpose 
+                            this.initialNodePositions = new Map();
+                            
+                            if (this.selectedNodes.size > 0) {
+                                this.selectedNodes.forEach(node => {
+                                    const nodeData = this.findNodeData(node.id);
+                                    if (nodeData) {
+                                        this.initialNodePositions.set(node.id, {
+                                            x: nodeData.position.x,
+                                            y: nodeData.position.y
+                                        });
+                                    }
+                                });
+                            } else {
+                                this.initialNodePositions.set(node.id, {
+                                    x: this.findNodeData(node.id).position.x,
+                                    y: this.findNodeData(node.id).position.y
+                                });
+                            }
                         }
                     } else {
                         //기능3. dragging background
@@ -1776,13 +2041,13 @@
                     if (isNodeDragging && draggedNode) {
                         e.preventDefault();
                         isDragging = true;
+
+                        // Calculate the movement delta
+                        const dx = (e.clientX - dragOffset.x) / this.scale;
+                        const dy = (e.clientY - dragOffset.y) / this.scale;
                         
                         // If there are selected nodes, move all of them
                         if (this.selectedNodes.size > 0) {
-
-                            // Calculate the movement delta
-                            const dx = (e.clientX - dragOffset.x) / this.scale;
-                            const dy = (e.clientY - dragOffset.y) / this.scale;
 
                             this.selectedNodes.forEach(node => {
                                 const nodeData = this.findNodeData(node.id);
@@ -1809,28 +2074,29 @@
                             dragOffset.y = e.clientY;
                         } else {
                             //drag single node 
-                            // Calculate the movement delta
-                            const dx = (e.clientX - dragOffset.x) / this.scale;
-                            const dy = (e.clientY - dragOffset.y) / this.scale;
-                            
-                            // Calculate new position based on initial position plus delta
-                            const newX = initialNodePosition.x + dx;
-                            const newY = initialNodePosition.y + dy;
-                            
-                            // Update node position
-                            draggedNode.style.left = `${newX}px`;
-                            draggedNode.style.top = `${newY}px`;
 
-                            // Update node data
-                            const nodeId = draggedNode.id;
-                            const nodeData = this.findNodeData(nodeId);
-                            if (nodeData) {
-                                nodeData.position.x = Math.round(newX);
-                                nodeData.position.y = Math.round(newY);
+                            // Single node movement
+                            const nodeData = this.findNodeData(draggedNode.id);
+                            if (nodeData) { 
+                                // Calculate new position based on initial position plus delta
+                                const newX = initialNodePosition.x + dx;
+                                const newY = initialNodePosition.y + dy;
+                                
+                                // Update node position
+                                draggedNode.style.left = `${newX}px`;
+                                draggedNode.style.top = `${newY}px`;
+
+                                // Update node data
+                                const nodeId = draggedNode.id;
+                                const nodeData = this.findNodeData(nodeId);
+                                if (nodeData) {
+                                    nodeData.position.x = Math.round(newX);
+                                    nodeData.position.y = Math.round(newY);
+                                }
+
+                                // Update connected edges
+                                this.updateConnectedEdges(nodeId);
                             }
-
-                            // Update connected edges
-                            this.updateConnectedEdges(nodeId);
                         }
                     }
                     
@@ -1840,12 +2106,6 @@
                         this.offset.y = e.clientY - startY;
                         this.updateTransform();
                     }
-                });
-
-                window.addEventListener('mouseup', () => {
-                    draggedNode = null;
-                    isNodeDragging = false;
-                    isBackgroundDragging = false;
                 });
 
 
@@ -1926,6 +2186,35 @@
                         this.connectStartTimeout = null;
                     }
 
+                    // If we were dragging nodes, save the movement to undo stack
+                    if (isNodeDragging && this.initialNodePositions) {
+                        const movements = [];
+                        
+                        // Collect movements for all affected nodes
+                        this.initialNodePositions.forEach((initialPos, nodeId) => {
+                            const node = document.getElementById(nodeId);
+                            const nodeData = this.findNodeData(nodeId);
+                            if (node && nodeData) {
+                                movements.push({
+                                    nodeId: nodeId,
+                                    oldPosition: initialPos,
+                                    newPosition: {
+                                        x: nodeData.position.x,
+                                        y: nodeData.position.y
+                                    }
+                                });
+                            }
+                        });
+
+                        // Only push to undo stack if there were actual movements
+                        if (movements.length > 0) {
+                            this.undoStack.push({
+                                type: 'moveNodes',
+                                data: movements
+                            });
+                        }
+                    }
+
                     // Reset mouse tracking
                     this.initialMousePos = null;
 
@@ -1933,6 +2222,7 @@
                     draggedNode = null;
                     isNodeDragging = false;
                     isBackgroundDragging = false;
+                    this.initialNodePositions = null;
                 });
 
                 // feat7: Add ESC key handler for canceling edge connection
@@ -1981,7 +2271,7 @@
                 // Add keyboard shortcut for save
                 document.addEventListener('keydown', (e) => {
                     // Check for Command+S (Mac) or Control+S (Windows/Linux)
-                    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
                         e.preventDefault(); // Prevent browser's default save dialog
                         document.getElementById('saveNodes').click();
                     }
@@ -2000,6 +2290,15 @@
                         this.loadFromFile(e.target.files[0]);
                     }
                 });
+
+                //feat9: undo 
+                document.addEventListener('keydown', (e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+                        e.preventDefault(); // Prevent browser's default save dialog
+                        this.undo();
+                    }
+                });
+
             }
 
             toggleNode(node) {
