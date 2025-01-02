@@ -323,12 +323,23 @@
             position: absolute;
             background: #4a90e2;
             height: 4px;
-            /* Made thicker */
-            pointer-events: none;
+
             transition: all 0.3s;
             transform-origin: left center;
             z-index: 2;
-            /* Added to ensure edges appear under nodes */
+
+            pointer-events: all;
+            cursor: pointer;
+        }
+
+        /* Add hover effect */
+        .edge:hover {
+            height: 6px;  /* Make edge slightly thicker on hover */
+            background: #fb7676;  /* Slightly darker blue on hover */
+        }
+
+        .edge:hover::after {
+            border-left-color: #fb7676;  /* Make arrow match the edge color on hover */
         }
 
         .edge::after {
@@ -343,6 +354,11 @@
             /* Made arrow bigger */
             border-top: 7px solid transparent;
             border-bottom: 7px solid transparent;
+            pointer-events: all;
+        }
+
+        .edge::after:hover {
+            border-left: 12px solid #fb7676;
         }
 
         .edge.active {
@@ -373,6 +389,18 @@
             border-left: 12px solid rgba(74, 144, 226, 0.4);
             border-top: 7px solid transparent;
             border-bottom: 7px solid transparent;
+        }
+
+
+        .edge.selected {
+            background: #ff4444;  /* Red color for selected edge */
+            height: 6px;  /* Make selected edge thicker */
+            z-index: 3;   /* Bring selected edge to front */
+        }
+
+        .edge.selected::after {
+            border-left-color: #ff4444;  /* Match arrow color */
+            border-left-width: 14px;     /* Make arrow bigger */
         }
 
         #controls {
@@ -681,6 +709,9 @@
                 this.initialMousePos = null;  // Track initial mouse position
                 this.connectStartTimeout = null;  // Track timeout ID
 
+                // track selected edge
+                this.selectedEdge = null;  // Track selected edge
+
                 // track node to delete
                 this.selectedNode = null;
                 this.edges = new Map(); // edge state management,  Map<string, {source: number, target: number}>
@@ -773,12 +804,6 @@
             //     this.container.appendChild(svg);
             //     this.gridElement = svg;
             // }
-
-            isEdgeActive(edge) {
-                const sourceNode = this.findNodeData(edge.source);
-                const targetNode = this.findNodeData(edge.target);
-                return sourceNode.explored && targetNode.explored;
-            }
 
             init() {
                 this.setupContainer();
@@ -1302,6 +1327,52 @@
                 });
             }
 
+            isEdgeActive(edge) {
+                const sourceNode = this.findNodeData(edge.source);
+                const targetNode = this.findNodeData(edge.target);
+                return sourceNode.explored && targetNode.explored;
+            }
+
+            selectEdge(edgeElement) {
+                if (this.selectedEdge) {
+                    this.selectedEdge.classList.remove('selected');
+                }
+                this.selectedEdge = edgeElement;
+                edgeElement.classList.add('selected');
+            }
+
+            deleteSelectedEdge() {
+                if (!this.selectedEdge) return;
+
+                // Get source and target node IDs from the edge
+                const sourceId = this.selectedEdge.dataset.source;
+                const targetId = this.selectedEdge.dataset.target;
+
+                // Find the source and target nodes' data
+                const sourceData = this.findNodeData(sourceId);
+                const targetData = this.findNodeData(targetId);
+
+                if (sourceData && targetData) {
+                    // Remove the connection from source node's data
+                    if (sourceData.connections) {
+                        sourceData.connections = sourceData.connections.filter(
+                            title => title !== targetData.title
+                        );
+                    }
+
+                    // Remove edge from DOM
+                    this.selectedEdge.remove();
+
+                    // Remove edge from edges Map
+                    const edgeId = `${sourceId}-${targetId}`;
+                    this.edges.delete(edgeId);
+                    this.activeEdges.delete(edgeId);
+
+                    // Clear selected edge reference
+                    this.selectedEdge = null;
+                }
+            }
+
             updateEdgePosition(edgeElement, sourceId, targetId) {
                 const source = document.getElementById(sourceId);
                 const target = document.getElementById(targetId);
@@ -1547,6 +1618,25 @@
                     } else {
                         this.selectedNode = null;  // Clear selection if clicking elsewhere
                     }
+
+                    //if you click edge, select that edge 
+                    const edge = e.target.closest('.edge');
+                    if (edge) {
+                        // Clear any previous edge selection
+                        if (this.selectedEdge) {
+                            this.selectedEdge.classList.remove('selected');
+                        }
+                        this.selectedEdge = edge;
+                        edge.classList.add('selected');
+                        e.stopPropagation();  // Prevent container click from clearing selection
+                    } else {
+                        // Clear edge selection when clicking elsewhere
+                        if (this.selectedEdge) {
+                            this.selectedEdge.classList.remove('selected');
+                            this.selectedEdge = null;
+                        }
+                    }
+
                     // Reset dragging state
                     isDragging = false;
                 });
@@ -1848,20 +1938,38 @@
                 // feat7: Add ESC key handler for canceling edge connection
                 window.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
+                        // Clear edge selection
+                        if (this.selectedEdge) {
+                            this.selectedEdge.classList.remove('selected');
+                            this.selectedEdge = null;
+                            return;
+                        }
+
                         // Clear selection box if it exists
                         if (this.isMultiSelecting) {
                             this.endMultiSelect();
                         }
+
                         // Clear selected nodes
                         this.selectedNodes.forEach(node => node.classList.remove('selected'));
                         this.selectedNodes.clear();
-                    }
-                    if (e.key === 'Escape' && this.isConnecting) {
-                        this.cancelConnection();
+
+                        if (this.isConnecting) {
+                            this.cancelConnection();
+                        }
                     }
                     // Delete selected node on backspace/delete
-                    if ((e.key === 'Backspace' || e.key === 'Delete') && this.selectedNode) {
-                        this.deleteNode(this.selectedNode);
+                    if ((e.key === 'Backspace' || e.key === 'Delete')) {
+                        // handle node deletion
+                        if(this.selectedNode) {
+                            this.deleteNode(this.selectedNode);
+                        }
+
+                        // Handle edge deletion
+                        if (this.selectedEdge) {
+                            this.deleteSelectedEdge();
+                            return;
+                        }
                     }
                 });
 
