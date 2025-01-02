@@ -2250,15 +2250,25 @@
                     }
                     // Delete selected node on backspace/delete
                     if ((e.key === 'Backspace' || e.key === 'Delete')) {
-                        // handle node deletion
-                        if(this.selectedNode) {
-                            this.deleteNode(this.selectedNode);
-                        }
-
                         // Handle edge deletion
                         if (this.selectedEdge) {
                             this.deleteSelectedEdge();
                             return;
+                        }
+
+                        // handle node deletion
+                        if(this.selectedNode) {
+                            this.deleteNode(this.selectedNode);
+                            return;
+                        }
+
+                        // Handle multiple selected nodes
+                        if (this.selectedNodes.size > 0) {
+                            // Create a copy of the nodes array since we'll be modifying selectedNodes during deletion
+                            const nodesToDelete = Array.from(this.selectedNodes);
+                            nodesToDelete.forEach(node => {
+                                this.deleteNode(node);
+                            });
                         }
                     }
                 });
