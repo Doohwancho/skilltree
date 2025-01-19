@@ -96,10 +96,10 @@
                 "connections": []
             }
         ],
-        "keystone": [
+        "steal": [
             {
                 "id": 4,
-                "type": "keystone",
+                "type": "steal",
                 "domain": "computer-science",
                 "rarity": "blue",
                 "position": {"x": 150, "y": 150},

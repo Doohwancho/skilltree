@@ -160,12 +160,12 @@
         }
 
         /* Square shape */
-        .node.keystone {
+        .node.steal{
             width: 63px;
             height: 65px;
         }
 
-        .node.keystone::before {
+        .node.steal::before {
             content: '';
             position: absolute;
             top: -2px;
@@ -1235,7 +1235,7 @@
                         return 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
                     case 'minor':
                         return 'circle(50%)';
-                    case 'keystone':
+                    case 'steal':
                         return 'none';
                     case 'project':
                         return 'path("M45,85 C23,67 0,48 0,20 C0,10 10,2 23,2 C32,2 40,10 45,20 C50,10 58,2 67,2 C80,2 90,10 90,20 C90,48 67,67 45,85")';
@@ -2860,7 +2860,7 @@
                         fundamental: [],
                         major: [],
                         minor: [],
-                        keystone: [],
+                        steal: [],
                         project: []
                     }
                 };
