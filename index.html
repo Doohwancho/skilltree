@@ -151,7 +151,7 @@
             height: 100%;
             border-radius: 50%;
             /* Make inner content round too */
-            overflow: hidden;
+            /* overflow: hidden; */
             /* Keep text inside circle */
             margin: 0;
             /* Remove any margin */
@@ -177,9 +177,9 @@
 
         /* Heart shape */
         .node.project {
+            position: absolute;
             width: 100px;
             height: 100px;
-            position: absolute;
             overflow: visible;
         }
 
@@ -224,6 +224,28 @@
             font-size: 14px;
             content: '?';
         }
+
+        /* Halo Effect */
+        .node::before {
+            transition: filter 0.3s;  /* Smooth transition for glow effect */
+        }
+
+        /* Base styles for shape-specific glows */
+        .node.project.has-glow::before {
+            filter: drop-shadow(0 0 5px var(--glow-color))
+                drop-shadow(0 0 10px var(--glow-color));
+        }
+
+        .node.fundamental.has-glow::before {
+            filter: drop-shadow(0 0 5px var(--glow-color))
+                drop-shadow(0 0 10px var(--glow-color));
+        }
+
+        .node.major.has-glow::before {
+            filter: drop-shadow(0 0 5px var(--glow-color))
+                drop-shadow(0 0 10px var(--glow-color));
+        }
+
 
         /* Rarity colors */
         .node.rarity-gold::before {
@@ -282,17 +304,13 @@
 
         .form-group select,
         .form-group input {
-            /* width: 100%;             */
+            /* width: 100%;  */
             width: -webkit-fill-available;            
             padding: 8px;
             background: #333;
             border: 1px solid #666;
             border-radius: 4px;
             color: white;
-        }
-
-        .form-group text {
-            
         }
 
         .dialog-buttons {
@@ -1025,6 +1043,13 @@
                 node.style.top = `${nodeData.position.y}px`;
 
                 this.updateNodeDisplay(node, nodeData);
+                this.createEnhancementButtons(node); //
+
+                if (nodeData.enhancementLevel > 0) {
+                    this.updateEnhancementDisplay(node, nodeData.enhancementLevel || 0);
+                    this.updateHaloEffect(node, nodeData.enhancementLevel || 0);
+                }
+
                 this.container.appendChild(node);
             }
 
@@ -1052,6 +1077,10 @@
             }
 
             updateNodeDisplay(node, nodeData) {
+                // Store enhancement elements if they exist
+                const existingButtons = node.querySelector('.enhancement-buttons');
+                const existingDisplay = node.querySelector('.enhancement-level');
+
                 // Clear current content
                 node.innerHTML = '';
 
@@ -1080,6 +1109,13 @@
                 }
 
                 node.appendChild(innerContainer);
+
+                // Restore enhancement elements if they existed
+                if (existingButtons) node.appendChild(existingButtons);
+                if (existingDisplay) {
+                    node.appendChild(existingDisplay);
+                    this.updateEnhancementDisplay(node, nodeData.enhancementLevel || 0);
+                }
             }
 
             startNodeCreation(e) {
@@ -2325,6 +2361,10 @@
                 } else {
                     this.deactivateNode(node);
                 }
+
+                if (nodeData.enhancementLevel >= 0) {
+                    this.updateEnhancementDisplay(node, nodeData.enhancementLevel || 0);
+                }
                 
                 this.updateStats();
             }
@@ -2534,6 +2574,268 @@
 
                 // Update one final time with new scale
                 this.updateTransform();
+            }
+
+            // Add enhancement buttons to node
+            createEnhancementButtons(node) {
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'enhancement-buttons';
+                
+                // minor, project node_shape은 버튼 위치를 세부조정 해줘야 한다.
+                if (node.classList.contains('minor')) {
+                    buttonsContainer.style.cssText = `
+                        position: absolute;
+                        right: -60px;
+                        top: 90%;
+                        transform: translateY(-50%);
+                        flex-direction: column;
+                        gap: 5px;
+                        z-index: 15;
+                        margin-top: 0;  /* Reset any inherited margins */
+                        display: none;
+                    `;
+                } else if (node.classList.contains('project')) {
+                    buttonsContainer.style.cssText = `
+                        position: absolute;
+                        right: -35px;
+                        top: 30%;  /* Adjust for project node's unique shape */
+                        transform: translateY(-50%);
+                        flex-direction: column;
+                        gap: 5px;
+                        z-index: 15;
+                        margin: 0;  /* Reset margins */
+                        display: none;
+                    `;
+                } else {
+                    buttonsContainer.style.cssText = `
+                        position: absolute;
+                        right: -17px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        flex-direction: column;
+                        gap: 5px;
+                        z-index: 15;
+                        display: none;
+                    `;
+                }
+
+                const plusButton = document.createElement('button');
+                plusButton.textContent = '+';
+                plusButton.className = 'enhancement-button';
+                plusButton.style.cssText = `
+                    width: 24px;
+                    height: 24px;
+                    background: #4A90E2;
+                    border: none;
+                    border-radius: 4px;
+                    color: white;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    padding: 0;
+                `;
+
+                const minusButton = document.createElement('button');
+                minusButton.textContent = '-';
+                minusButton.className = 'enhancement-button';
+                minusButton.style.cssText = plusButton.style.cssText;
+
+                // Add enhancement level display
+                const enhancementDisplay = document.createElement('div');
+                enhancementDisplay.className = 'enhancement-level';
+
+                if (node.classList.contains('project')) {
+                    enhancementDisplay.style.cssText = `
+                        position: absolute;
+                        right: -34px;
+                        top: 26px;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 14px;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                        z-index: 15;  /* Increased z-index to show above heart shape */
+                        pointer-events: none;
+                    `;
+                    node.appendChild(enhancementDisplay);
+                } else if (node.classList.contains('minor')) {
+                    enhancementDisplay.style.cssText = `
+                        position: absolute;
+                        right: -40px;  /* Position to top right */
+                        top: 5px;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 14px;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                        z-index: 20;
+                        pointer-events: none;
+                    `;
+                    node.appendChild(enhancementDisplay);
+                } else {
+                    // Default styling for other node types
+                    enhancementDisplay.style.cssText = `
+                        position: absolute;
+                        right: 5px;
+                        top: 5px;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 14px;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                        z-index: 10;
+                        pointer-events: none;
+                        display: flex;
+                    `;
+                    node.appendChild(enhancementDisplay);
+                }
+
+                // Add event listeners
+                plusButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeData = skillTree.findNodeData(node.id);
+                    if (nodeData) {
+                        nodeData.enhancementLevel = (nodeData.enhancementLevel || 0) + 1;
+                        if (nodeData.enhancementLevel > 10) nodeData.enhancementLevel = 10;
+                        this.updateEnhancementDisplay(node, nodeData.enhancementLevel || 0);
+                    }
+                });
+
+                minusButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeData = skillTree.findNodeData(node.id);
+                    if (nodeData) {
+                        nodeData.enhancementLevel = (nodeData.enhancementLevel || 0) - 1;
+                        if (nodeData.enhancementLevel < 0) nodeData.enhancementLevel = 0;
+                        this.updateEnhancementDisplay(node, nodeData.enhancementLevel || 0);
+                    }
+                });
+
+                buttonsContainer.appendChild(plusButton);
+                buttonsContainer.appendChild(minusButton);
+                node.appendChild(buttonsContainer);
+                node.appendChild(enhancementDisplay);
+
+                // Add hover events
+                node.addEventListener('mouseenter', () => {
+                    if (this.isConnecting) return;
+                    buttonsContainer.style.display = 'flex';
+                });
+
+                node.addEventListener('mouseleave', () => {
+                    buttonsContainer.style.display = 'none';
+                });
+            }
+
+            // Update enhancement level display
+            updateEnhancementDisplay(node, level) {
+                level = level || 0;                
+
+                const display = node.querySelector('.enhancement-level');
+                if (display) {
+                    if (level > 0) {
+                        display.textContent = `+${level}`;
+                        
+                        if (node.classList.contains('project')) {
+                            display.style.display = 'flex'; //css magic that for some weird reason, enhancement-number is not displayed without this line
+                        } else {
+                            display.style.display = 'block';
+                        }
+                        
+                        this.updateHaloEffect(node, level);
+                    } else {
+                        display.textContent = '';
+                        display.style.display = 'none';
+
+                        this.updateHaloEffect(node, 0); // Remove halo effect
+                    }
+                }
+            }
+
+            updateHaloEffect(node, level) {
+                const innerContainer = node.querySelector('div');
+                if (!innerContainer) return;
+
+                // Reset any existing effects
+                innerContainer.style.filter = '';
+                node.style.filter = '';
+                node.style.boxShadow = '';
+                
+                if (level > 0) {
+                    const nodeData = this.findNodeData(node.id);
+                    const domainColor = nodeData && this.data.domains[nodeData.domain] 
+                        ? this.data.domains[nodeData.domain].color 
+                        : '#ffffff';
+
+                    // Calculate effect intensity
+                    const glowSize = Math.min(level * 3, 20);
+                    const glowOpacity = Math.min(0.3 + (level * 0.07), 0.8);
+
+                    // Apply different effects based on node type
+                    switch(nodeData.type) {
+                        case 'project': // Heart shape
+                            // First glow effect (inner)
+                            innerContainer.style.filter = `
+                                drop-shadow(0 0 ${glowSize * 0.3}px ${domainColor})
+                                drop-shadow(0 0 ${glowSize * 0.5}px ${domainColor})
+                            `;
+                            
+                            // Second glow effect (outer)
+                            node.style.filter = `
+                                drop-shadow(0 0 ${glowSize}px ${domainColor})
+                                drop-shadow(0 0 ${glowSize * 1.5}px ${domainColor})
+                            `;
+                            break;
+
+                        case 'fundamental': // Star shape
+                            // Apply both inner and outer glow
+                            innerContainer.style.filter = `
+                                drop-shadow(0 0 ${glowSize * 0.3}px ${domainColor})
+                                drop-shadow(0 0 ${glowSize * 0.5}px ${domainColor})
+                            `;
+                            node.style.filter = `
+                                drop-shadow(0 0 ${glowSize}px ${domainColor})
+                                drop-shadow(0 0 ${glowSize * 1.5}px ${domainColor})
+                            `;
+                            break;
+
+                        case 'major': // Diamond shape
+                            // Apply both inner and outer glow
+                            innerContainer.style.filter = `
+                                drop-shadow(0 0 ${glowSize * 0.3}px ${domainColor})
+                                drop-shadow(0 0 ${glowSize * 0.5}px ${domainColor})
+                            `;
+                            node.style.filter = `
+                                drop-shadow(0 0 ${glowSize}px ${domainColor})
+                                drop-shadow(0 0 ${glowSize * 1.5}px ${domainColor})
+                            `;
+                            break;
+
+                        case 'minor': // Circle - keep using box-shadow
+                            node.style.boxShadow = `
+                                0 0 ${glowSize}px ${glowOpacity * 0.5}em ${domainColor},
+                                0 0 ${glowSize * 0.5}px ${glowOpacity * 0.3}em ${domainColor}
+                            `;
+                            break;
+
+                        case 'steal': // Square - keep using box-shadow
+                            node.style.boxShadow = `
+                                0 0 ${glowSize}px ${glowOpacity * 0.5}em ${domainColor},
+                                0 0 ${glowSize * 0.5}px ${glowOpacity * 0.3}em ${domainColor}
+                            `;
+                            break;
+                    }
+
+                    // Add brightness effect for higher levels
+                    if (level >= 5) {
+                        if (!['minor', 'steal'].includes(nodeData.type)) {
+                            // For shaped nodes, add brightness to the inner container
+                            innerContainer.style.filter += ` brightness(${1 + (level * 0.05)})`;
+                        } else {
+                            // For circle and square, just add brightness
+                            innerContainer.style.filter = `brightness(${1 + (level * 0.05)})`;
+                        }
+                    }
+                }
             }
 
             createGaugeBar(container, label, percentage, color, count, total) {
@@ -2883,7 +3185,8 @@
                                     },
                                     title: node.title,
                                     explored: this.activeNodes.has(node.id),
-                                    connections: node.connections || []
+                                    connections: node.connections || [],
+                                    enhancementLevel: node.enhancementLevel || 0
                                 };
                                 saveData.nodes[type].push(nodeCopy);
                             }
@@ -2986,7 +3289,6 @@
                     alert('Error loading file. Please ensure it is a valid skill tree JSON file.');
                 }
             }
-
         }
 
         // Initialize the skill tree
