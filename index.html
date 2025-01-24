@@ -867,9 +867,6 @@
 
                 // Create only visible nodes
                 this.updateVisibleNodes();
-
-                // this.createNodes();
-                this.createEdges();
                 this.setupEventListeners();
                 this.updateStats();
             }
@@ -1058,17 +1055,6 @@
             /*********************************
              * Node
              */
-            createNodes() {
-                // Create nodes for each type
-                Object.entries(this.data.nodes).forEach(([type, nodes]) => {
-                    if (Array.isArray(nodes)) {
-                        nodes.forEach(node => this.createNode(node));
-                    } else {
-                        this.createNode(nodes);
-                    }
-                });
-            }
-
             createNode(nodeData) {
                 const node = document.createElement('div');
                 node.className = `node ${nodeData.type}`;
@@ -1718,22 +1704,6 @@
             /*********************************
              * Edge
              */
-            createEdges() {
-                this.edges.clear(); // Clear existing edges
-                this.visibleNodes.forEach(sourceId => {
-                    const sourceData = this.loadedNodes.get(sourceId);
-                    if (sourceData && sourceData.connections) {
-                        sourceData.connections.forEach(targetTitle => {
-                            const targetNode = this.findNodeByTitle(targetTitle);
-                            if (targetNode && this.visibleNodes.has(targetNode.id)) {
-                                this.createEdgeElement(sourceId, targetNode.id);
-                            }
-                        });
-                    }
-                });
-            }
-
-
             isEdgeActive(edge) {
                 const sourceNode = this.findNodeData(edge.source);
                 const targetNode = this.findNodeData(edge.target);
@@ -1960,7 +1930,9 @@
                 if (!sourceData.connections) {
                     sourceData.connections = [];
                 }
+
                 const edgeId = `${sourceData.id}-${targetData.id}`;
+
                 if (!this.edges.has(edgeId)) {
                     // Add to node's connections (keep for backward compatibility)
                     sourceData.connections.push(targetData.title);
@@ -2015,58 +1987,6 @@
                 edgeElement.classList.add('selected');
             }
 
-            deleteSelectedEdge() {
-                if (!this.selectedEdge) return;
-
-                // Get source and target node IDs from the edge
-                const sourceId = this.selectedEdge.dataset.source;
-                const targetId = this.selectedEdge.dataset.target;
-
-                const edgeId = `${sourceId}-${targetId}`;
-                const edge = this.edges.get(edgeId);
-
-                if (edge) {
-                    // Store edge state before deletion
-                    const edgeState = {
-                        sourceId: parseInt(sourceId),
-                        targetId: parseInt(targetId),
-                        active: this.activeEdges.has(edgeId)
-                    };
-
-                    // Add to undo stack before deleting
-                    this.undoStack.push({
-                        type: 'deleteEdge',
-                        data: edgeState
-                    });
-
-                    // Remove edge 
-
-                    // Find the source and target nodes' data
-                    const sourceData = this.findNodeData(sourceId);
-                    const targetData = this.findNodeData(targetId);
-
-                    if (sourceData && targetData) {
-                        // Remove the connection from source node's data
-                        if (sourceData.connections) {
-                            sourceData.connections = sourceData.connections.filter(
-                                title => title !== targetData.title
-                            );
-                        }
-
-                        // Remove edge from DOM
-                        this.selectedEdge.remove();
-
-                        // Remove edge from edges Map
-                        const edgeId = `${sourceId}-${targetId}`;
-                        this.edges.delete(edgeId);
-                        this.activeEdges.delete(edgeId);
-
-                        // Clear selected edge reference
-                        this.selectedEdge = null;
-                    }
-                }
-            }
-
             selectEdge(edgeElement) {
                 if (this.selectedEdge) {
                     this.selectedEdge.classList.remove('selected');
@@ -2078,55 +1998,45 @@
             deleteSelectedEdge() {
                 if (!this.selectedEdge) return;
 
-                // Get source and target node IDs from the edge
-                const sourceId = this.selectedEdge.dataset.source;
-                const targetId = this.selectedEdge.dataset.target;
+                const sourceId = parseInt(this.selectedEdge.dataset.source);
+                const targetId = parseInt(this.selectedEdge.dataset.target);
+                const sourceData = this.loadedNodes.get(sourceId);
+                const targetData = this.loadedNodes.get(targetId);
 
-                const edgeId = `${sourceId}-${targetId}`;
-                const edge = this.edges.get(edgeId);
-
-                if (edge) {
-                    // Store edge state before deletion
+                if (sourceData && targetData) {
+                    // Store edge state before deletion for undo
                     const edgeState = {
-                        sourceId: parseInt(sourceId),
-                        targetId: parseInt(targetId),
-                        active: this.activeEdges.has(edgeId)
+                        sourceId: sourceId,
+                        targetId: targetId,
+                        sourceTitle: sourceData.title,
+                        targetTitle: targetData.title,
+                        active: this.activeEdges.has(`${sourceId}-${targetId}`)
                     };
 
-                    // Add to undo stack before deleting
+                    // Add to undo stack
                     this.undoStack.push({
                         type: 'deleteEdge',
                         data: edgeState
                     });
 
-                    // Remove edge 
+                    // Remove connection from source node's data
+                    sourceData.connections = sourceData.connections.filter(
+                        title => title !== targetData.title
+                    );
 
-                    // Find the source and target nodes' data
-                    const sourceData = this.findNodeData(sourceId);
-                    const targetData = this.findNodeData(targetId);
+                    // Remove from active edges and edges map
+                    const edgeId = `${sourceId}-${targetId}`;
+                    this.activeEdges.delete(edgeId);
+                    this.edges.delete(edgeId);
 
-                    if (sourceData && targetData) {
-                        // Remove the connection from source node's data
-                        if (sourceData.connections) {
-                            sourceData.connections = sourceData.connections.filter(
-                                title => title !== targetData.title
-                            );
-                        }
+                    // Remove from DOM
+                    this.selectedEdge.remove();
+                    this.selectedEdge = null;
 
-                        // Remove edge from DOM
-                        this.selectedEdge.remove();
-
-                        // Remove edge from edges Map
-                        const edgeId = `${sourceId}-${targetId}`;
-                        this.edges.delete(edgeId);
-                        this.activeEdges.delete(edgeId);
-
-                        // Clear selected edge reference
-                        this.selectedEdge = null;
-                    }
+                    // Update stats
+                    this.updateStats();
                 }
             }
-
 
             /*********************************
              * Event Listeners
@@ -3402,12 +3312,20 @@
                 const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
                 // Convert string ID from DOM to number if needed
                 const numericId = typeof nodeId === 'string' ? parseInt(nodeId) : nodeId;
-                return allNodes.find(node => node.id === numericId);
+                return this.loadedNodes.get(numericId);
+                // return allNodes.find(node => node.id === numericId);
             }
 
             findNodeByTitle(title) {
-                const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
-                return allNodes.find(node => node.title.toLowerCase() === title.toLowerCase());
+                // const allNodes = Object.values(this.data.nodes).flat().filter(node => node);
+                // return allNodes.find(node => node.title.toLowerCase() === title.toLowerCase());
+                    // Search through loadedNodes instead of data.nodes
+                for (const node of this.loadedNodes.values()) {
+                    if (node.title.toLowerCase() === title.toLowerCase()) {
+                        return node;
+                    }
+                }
+                return null;
             }
 
             findNodeIdByTitle(title) {
