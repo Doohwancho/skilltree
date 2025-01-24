@@ -872,9 +872,6 @@
                 this.createEdges();
                 this.setupEventListeners();
                 this.updateStats();
-
-                // console.log("---------- # of visible nodes ----------");
-                // console.log(this.visibleNodes);
             }
 
             setupContainer() {
@@ -1099,6 +1096,9 @@
                 }
 
                 this.container.appendChild(node);
+
+                // Add to loadedNodes
+                this.loadedNodes.set(nodeData.id, nodeData);
             }
 
             isNodeAccessible(nodeId) {
@@ -1512,6 +1512,9 @@
                 if (Array.isArray(this.data.nodes[nodeType])) {
                     this.data.nodes[nodeType] = this.data.nodes[nodeType].filter(n => n.id !== nodeId);
                 }
+
+                // Remove node from loaded data
+                this.loadedNodes.delete(nodeId);
 
                 // Remove node element from DOM
                 node.remove();
@@ -3344,8 +3347,7 @@
                 if (!this.setsAreEqual(previouslyVisible, this.visibleNodes)) {
                     this.updateVisibleEdges();
                 }
-
-                console.log("After update - visible nodes:", this.visibleNodes.size);
+                // console.log("After update - visible nodes:", this.visibleNodes.size);
             }
 
 
@@ -3442,32 +3444,20 @@
                     }
                 };
 
-                // Gather all nodes and their current state
-                Object.entries(this.data.nodes).forEach(([type, nodes]) => {
-                    nodes.forEach(node => {
-                        if (node) {
-                            const nodeElement = document.getElementById(String(node.id));
-                            if (nodeElement) {
-                                // Create a copy of the node data with current position and state
-                                const nodeCopy = {
-                                    id: node.id,
-                                    type: node.type,
-                                    domain: node.domain,
-                                    rarity: node.rarity,
-                                    position: {
-                                        x: parseInt(nodeElement.style.left),
-                                        y: parseInt(nodeElement.style.top)
-                                    },
-                                    title: node.title,
-                                    explored: this.activeNodes.has(node.id),
-                                    connections: node.connections || [],
-                                    enhancementLevel: node.enhancementLevel || 0
-                                };
-                                saveData.nodes[type].push(nodeCopy);
-                            }
-                        }
-                    });
-                });
+                for (const [id, node] of this.loadedNodes) {
+                    const nodeCopy = {
+                        id: node.id,
+                        type: node.type,
+                        domain: node.domain,
+                        rarity: node.rarity,
+                        position: node.position,
+                        title: node.title,
+                        explored: this.activeNodes.has(node.id),
+                        connections: node.connections || [],
+                        enhancementLevel: node.enhancementLevel || 0
+                    };
+                    saveData.nodes[node.type].push(nodeCopy);
+                }
 
                 return saveData;
             }
