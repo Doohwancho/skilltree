@@ -1090,13 +1090,13 @@
             isNodeAccessible(nodeId) {
                 const nodeData = this.findNodeData(nodeId);
 
+                if (!nodeData || !nodeData.title) return false;  
+
                 // Check incoming connections
-                const hasActiveIncomingConnection = Object.values(this.data.nodes)
-                    .flat()
-                    .filter(node => node)
-                    .some(node =>
-                        node.connections &&
-                        node.connections.includes(nodeData.title) &&
+                const hasActiveIncomingConnection = Array.from(this.loadedNodes.values())
+                    .some(node => 
+                        node.connections && 
+                        node.connections.includes(nodeData.title) && 
                         this.activeNodes.has(node.id)
                     );
 
@@ -2362,7 +2362,16 @@
                 }
 
                 // feat4: create new node 
-                // Add double click handler for node creation
+                /**
+                 * feat: 더블클릭한 DOM이 #skillTree 인 경우에만, 노드 만드는 모달을 띄워준다. 
+                 * 
+                 * 구조)
+                 * <container>
+                 *      <skilltree />
+                 *      <stats />
+                 *      <controls />
+                 * </container
+                 */ 
                 this.container.parentElement.addEventListener('dblclick', (e) => {
                     const isSkillTree = e.target.closest('#skillTree');
                     const isStats = e.target.closest('#stats');
@@ -2370,7 +2379,7 @@
                     const isDialog = e.target.closest('.node-creation-dialog');
 
                     // Only proceed if we're not clicking any of these elements
-                    if (!isSkillTree && !isStats && !isControls && !isDialog) {
+                    if (isSkillTree && !isStats && !isControls && !isDialog) {
                         e.preventDefault();
                         e.stopPropagation();
                         this.startNodeCreation(e);
