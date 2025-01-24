@@ -2433,6 +2433,21 @@
                     this.updateTransform();
                 });
 
+
+                //command + '-' | '+' -> update visual nodes & edges
+                window.addEventListener('resize', () => {
+                    this.updateViewportBounds();
+                    this.updateVisibleNodes();
+                });
+
+                // Handle browser zoom specifically if visualViewport is supported (robust)
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', () => {
+                        this.updateViewportBounds();
+                        this.updateVisibleNodes();
+                    });
+                }
+
                 // feat4: create new node 
                 // Add double click handler for node creation
                 this.container.parentElement.addEventListener('dblclick', (e) => {
