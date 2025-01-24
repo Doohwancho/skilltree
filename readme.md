@@ -24,3 +24,6 @@ skill tree in html + js + json
 11. command(ctrl for window) + drag to select multiple nodes for drag
 12. click an edge and backspace deletes the edge
 13. undo
+14. display reinforcement of node
+15. halo effect as you reinforce a node
+16. optimization: only visualize nodes & edges within viewport

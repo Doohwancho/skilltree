@@ -51,12 +51,17 @@
         "basic-cs": {
             "title": "Basic CS",
             "domain": "computer-science",
-            "nodes": ["Sorting Algorithms", "System Design"]
+            "nodes": [
+                "Sorting Algorithms",
+                "System Design"
+            ]
         },
         "web-basics": {
             "title": "Web Fundamentals1",
             "domain": "web-development",
-            "nodes": ["skill tree"]
+            "nodes": [
+                "skill tree"
+            ]
         }
     },
     "nodes": {
@@ -66,10 +71,16 @@
                 "type": "fundamental",
                 "domain": "learn",
                 "rarity": "gold",
-                "position": {"x": 0, "y": 0},
+                "position": {
+                    "x": 582,
+                    "y": 300
+                },
                 "title": "Core Skills",
                 "explored": true,
-                "connections": ["Algorithms check linebreak"]
+                "connections": [
+                    "Algorithms check linebreak"
+                ],
+                "enhancementLevel": 0
             }
         ],
         "major": [
@@ -78,10 +89,16 @@
                 "type": "major",
                 "domain": "computer-science",
                 "rarity": "purple",
-                "position": {"x": 200, "y": 0},
+                "position": {
+                    "x": 782,
+                    "y": 300
+                },
                 "title": "Algorithms check linebreak",
                 "explored": true,
-                "connections": ["Sorting Algorithms"]
+                "connections": [
+                    "Sorting Algorithms"
+                ],
+                "enhancementLevel": 0
             }
         ],
         "minor": [
@@ -90,10 +107,14 @@
                 "type": "minor",
                 "domain": "computer-science",
                 "rarity": "blue",
-                "position": {"x": 350, "y": 0},
+                "position": {
+                    "x": 932,
+                    "y": 300
+                },
                 "title": "Sorting Algorithms",
                 "explored": false,
-                "connections": []
+                "connections": [],
+                "enhancementLevel": 0
             }
         ],
         "steal": [
@@ -102,22 +123,30 @@
                 "type": "steal",
                 "domain": "computer-science",
                 "rarity": "blue",
-                "position": {"x": 150, "y": 150},
+                "position": {
+                    "x": 732,
+                    "y": 450
+                },
                 "title": "System Design",
                 "explored": false,
-                "connections": []
+                "connections": [],
+                "enhancementLevel": 0
             }
-        ], 
+        ],
         "project": [
             {
                 "id": 5,
                 "type": "project",
                 "domain": "web-development",
                 "rarity": "orange",
-                "position": {"x": 0, "y": 150},
+                "position": {
+                    "x": 582,
+                    "y": 450
+                },
                 "title": "skill tree",
                 "explored": true,
-                "connections": []
+                "connections": [],
+                "enhancementLevel": 0
             }
         ]
     }
