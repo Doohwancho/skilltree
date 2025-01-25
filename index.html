@@ -2383,17 +2383,17 @@
                  * </container
                  */ 
                 this.container.parentElement.addEventListener('dblclick', (e) => {
-                    const isSkillTree = e.target.closest('#skillTree');
                     const isStats = e.target.closest('#stats');
                     const isControls = e.target.closest('#controls');
                     const isDialog = e.target.closest('.node-creation-dialog');
 
-                    // Only proceed if we're not clicking any of these elements
-                    if (isSkillTree && !isStats && !isControls && !isDialog) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        this.startNodeCreation(e);
+                    if(isStats || isControls || isDialog) {
+                        return;
                     }
+
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.startNodeCreation(e);
                 });
 
                 // feat5: create new edge 
