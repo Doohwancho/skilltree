@@ -1066,6 +1066,11 @@
              * Node
              */
             createNode(nodeData) {
+                // Check if the node already exists in the DOM
+                if (document.getElementById(String(nodeData.id))) {
+                    return; // Node already exists, don't create a duplicate
+                }
+
                 const node = document.createElement('div');
                 node.className = `node ${nodeData.type}`;
 
@@ -1092,9 +1097,6 @@
                 }
 
                 this.container.appendChild(node);
-
-                // Add to loadedNodes
-                this.loadedNodes.set(nodeData.id, nodeData);
             }
 
             isNodeAccessible(nodeId) {
@@ -1326,8 +1328,14 @@
                 }
                 this.data.nodes[type].push(newNode);
 
-                // Create the node in the UI
-                this.createNode(newNode);
+                // Add to loadedNodes map
+                this.loadedNodes.set(newNode.id, newNode);
+                
+                // Only create the node in the UI if it's within the viewport
+                if (this.isNodeInViewport(newNode.position)) {
+                    this.createNode(newNode);
+                    this.visibleNodes.add(newNode.id);
+                }
 
                 // Update statistics
                 this.updateStats();
@@ -3483,7 +3491,7 @@
 
         // Initialize the skill tree
         let skillTree;
-        fetch('./skill-tree.json')
+        fetch('./example/skill-tree.json')
             .then(response => response.json())
             .then(data => {
                 skillTree = new SkillTree('skillTree', data,'skill-tree.json');
