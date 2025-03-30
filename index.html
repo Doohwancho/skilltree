@@ -970,33 +970,18 @@
                     this.data.nodes[nodeData.type] = [];
                 }
                 this.data.nodes[nodeData.type].push(nodeData);
-
-                // Recreate node in UI
-                this.createNode(nodeData);
-
-                // Restore outgoing connections
-                if (nodeData.connections) {
-                    nodeData.connections.forEach(targetTitle => {
-                        const targetNode = this.findNodeByTitle(targetTitle);
-                        if (targetNode) {
-                            this.createEdgeElement(nodeData.id, targetNode.id);
-                        }
-                    });
+                
+                // Add back to loadedNodes map
+                this.loadedNodes.set(nodeData.id, nodeData);
+                
+                // Add back to visibleNodes if in viewport
+                if (this.isNodeInViewport(nodeData.position)) {
+                    this.visibleNodes.add(nodeData.id);
                 }
 
-                // Restore incoming connections
-                if (nodeData.incomingConnections) {
-                    nodeData.incomingConnections.forEach(connection => {
-                        const sourceNode = this.findNodeData(connection.sourceId);
-                        if (sourceNode) {
-                            // Add connection to source node if not already present
-                            if (!sourceNode.connections.includes(nodeData.title)) {
-                                sourceNode.connections.push(nodeData.title);
-                            }
-                            // Create edge element
-                            this.createEdgeElement(sourceNode.id, nodeData.id);
-                        }
-                    });
+                // Recreate node in UI if it should be visible
+                if (this.isNodeInViewport(nodeData.position)) {
+                    this.createNode(nodeData);
                 }
 
                 // Restore active state if it was active
@@ -1005,6 +990,58 @@
                     const node = document.getElementById(nodeData.id);
                     if (node) this.updateNodeDisplay(node, nodeData);
                 }
+
+                // Restore outgoing connections
+                if (nodeData.connections && nodeData.connections.length > 0) {
+                    nodeData.connections.forEach(targetTitle => {
+                        const targetNode = this.findNodeByTitle(targetTitle);
+                        if (targetNode) {
+                            // Create edge if both nodes are visible
+                            if (this.visibleNodes.has(nodeData.id) && this.visibleNodes.has(targetNode.id)) {
+                                const edgeElement = this.createEdgeElement(nodeData.id, targetNode.id);
+                                
+                                // Restore active state if both nodes are active
+                                if (nodeData.explored && targetNode.explored) {
+                                    const edgeId = `${nodeData.id}-${targetNode.id}`;
+                                    this.activeEdges.add(edgeId);
+                                    if (edgeElement) edgeElement.classList.add('active');
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Restore incoming connections
+                if (nodeData.incomingConnections && nodeData.incomingConnections.length > 0) {
+                    nodeData.incomingConnections.forEach(connection => {
+                        const sourceNode = this.findNodeData(connection.sourceId);
+                        if (sourceNode) {
+                            // Add connection to source node if not already present
+                            if (!sourceNode.connections) {
+                                sourceNode.connections = [];
+                            }
+                            
+                            if (!sourceNode.connections.includes(nodeData.title)) {
+                                sourceNode.connections.push(nodeData.title);
+                            }
+                            
+                            // Create edge element if both nodes are visible
+                            if (this.visibleNodes.has(sourceNode.id) && this.visibleNodes.has(nodeData.id)) {
+                                const edgeElement = this.createEdgeElement(sourceNode.id, nodeData.id);
+                                
+                                // Restore active state if both nodes are active
+                                if (sourceNode.explored && nodeData.explored) {
+                                    const edgeId = `${sourceNode.id}-${nodeData.id}`;
+                                    this.activeEdges.add(edgeId);
+                                    if (edgeElement) edgeElement.classList.add('active');
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update stats
+                this.updateStats();
             }
 
             undoEdgeDeletion(edgeData) {
@@ -1468,16 +1505,24 @@
 
                 // Remove from activeNodes if it was active
                 this.activeNodes.delete(nodeId);
+                
+                // Remove from visibleNodes set
+                this.visibleNodes.delete(nodeId);
 
                 // Remove all edges connected to this node using edge state
+                const edgesToRemove = [];
                 Array.from(this.edges.entries()).forEach(([edgeId, edge]) => {
                     if (edge.sourceId === nodeId || edge.targetId === nodeId) {
+                        // Track edges to remove after loop
+                        edgesToRemove.push(edgeId);
+                        
                         // Remove edge element from DOM
-                        edge.element.remove();
+                        if (edge.element && edge.element.parentNode) {
+                            edge.element.remove();
+                        }
+                        
                         // Remove from active edges
                         this.activeEdges.delete(edgeId);
-                        // Remove from edge state
-                        this.edges.delete(edgeId);
 
                         // Update connections in other nodes
                         if (edge.sourceId === nodeId) {
@@ -1503,12 +1548,24 @@
                         }
                     }
                 });
+                
+                // Remove all tracked edges
+                edgesToRemove.forEach(edgeId => {
+                    this.edges.delete(edgeId);
+                });
 
                 // Remove node from collections
                 if (this.data.collections) {
                     Object.values(this.data.collections).forEach(collection => {
-                        collection.nodes = collection.nodes.filter(title => title !== nodeData.title);
+                        if (collection.nodes) {
+                            collection.nodes = collection.nodes.filter(id => id !== nodeData.title);
+                        }
                     });
+                }
+
+                // Remove from selectedNodes if it was selected
+                if (this.selectedNodes.has(node)) {
+                    this.selectedNodes.delete(node);
                 }
 
                 // Remove node from data
@@ -1521,9 +1578,13 @@
                 this.loadedNodes.delete(nodeId);
 
                 // Remove node element from DOM
-                node.remove();
+                if (node.parentNode) {
+                    node.remove();
+                }
+                
                 // Clear selection
                 this.selectedNode = null;
+                
                 // Update stats
                 this.updateStats();
             }
@@ -1877,8 +1938,14 @@
             }
 
             createEdgeElement(sourceId, targetId) {
+                // Check if edge already exists
+                const edgeId = `${sourceId}-${targetId}`;
+                if (this.edges.has(edgeId)) {
+                    return this.edges.get(edgeId).element;
+                }
+
                 // Create edge element only if both nodes are visible
-                if (!this.visibleNodes.has(sourceId) || !this.visibleNodes.has(targetId)) {
+                if (!this.visibleNodes.has(parseInt(sourceId)) || !this.visibleNodes.has(parseInt(targetId))) {
                     return null;
                 }
 
@@ -1897,19 +1964,23 @@
                 this.container.appendChild(edgeElement);
 
                 // Store edge in edge state management
-                const edgeId = `${sourceId}-${targetId}`;
-                const sourceData = this.loadedNodes.get(sourceId);
-                const targetData = this.loadedNodes.get(targetId);
+                const sourceData = this.loadedNodes.get(parseInt(sourceId));
+                const targetData = this.loadedNodes.get(parseInt(targetId));
+
+                if (!sourceData || !targetData) {
+                    return null;
+                }
 
                 this.edges.set(edgeId, {
-                    sourceId: sourceId,
-                    targetId: targetId,
-                    sourceTitle: sourceNode.title,
-                    targetTitle: targetNode.title,
+                    sourceId: parseInt(sourceId),
+                    targetId: parseInt(targetId),
+                    sourceTitle: sourceData.title,
+                    targetTitle: targetData.title,
                     element: edgeElement
                 });
 
-                if (sourceNode.explored && targetNode.explored) {
+                // Check if edge should be active
+                if (sourceData.explored && targetData.explored) {
                     this.activeEdges.add(edgeId);
                     edgeElement.classList.add('active');
                 }
